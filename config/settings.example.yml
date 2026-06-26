@@ -4,7 +4,7 @@ server:
 links:
   guacamole:
     label: Guacamole
-    url: http://server-ip:8081/guacamole/
+    url: /guacamole/
   portainer:
     label: Portainer
     url: https://server-ip:9443/
@@ -17,4 +17,4 @@ docker:
     - scp-portainer
     - scp-guacamole
     - scp-guacd
-
+    - scp-guacamole-db

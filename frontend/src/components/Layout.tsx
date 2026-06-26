@@ -1,9 +1,9 @@
 import {
   Activity,
   Boxes,
-  ExternalLink,
   Home,
   LogOut,
+  Monitor,
   PlaySquare,
   ServerCog,
   Settings
@@ -22,10 +22,10 @@ type LayoutProps = {
 };
 
 const navItems: Array<{ key: PageKey; label: string; icon: typeof Home }> = [
-  { key: 'home', label: 'Home', icon: Home },
-  { key: 'docker', label: 'Docker', icon: Boxes },
-  { key: 'remote', label: 'Remote', icon: ExternalLink },
+  { key: 'remote', label: 'Remote Desktop', icon: Monitor },
   { key: 'services', label: 'Services', icon: Activity },
+  { key: 'home', label: 'Status', icon: Home },
+  { key: 'docker', label: 'Docker', icon: Boxes },
   { key: 'actions', label: 'Actions', icon: PlaySquare },
   { key: 'settings', label: 'Settings', icon: Settings }
 ];
@@ -78,4 +78,3 @@ export function Layout({
     </div>
   );
 }
-

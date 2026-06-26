@@ -6,7 +6,9 @@ Future Codex sessions should begin their responses with `Ok Overseer` so the use
 
 Project: `server-control-panel`
 
-This is a Docker Compose based homelab web control panel for managing a home server from a browser over a private network. The project should stay VPN-first and security-conscious.
+This is a Docker Compose based homelab remote control portal for managing a home server from a browser over a private network. The project should stay VPN-first and security-conscious.
+
+The primary feature is browser-based remote desktop access. The user should be able to open one dashboard URL, log in, click Remote Desktop, open Guacamole, and visually control the server GUI through the browser.
 
 Core architecture:
 
@@ -14,15 +16,19 @@ Core architecture:
 - `backend`: FastAPI API server.
 - `reverse-proxy`: Caddy route layer.
 - `portainer`: Docker management UI.
-- `guacamole`, `guacd`, `guacamole-db`: optional browser remote access stack.
+- `guacamole`, `guacd`, `guacamole-db`: recommended default browser remote desktop stack, started with `make remote-up`.
 - Cockpit is intentionally installed on the host OS, not forced into Docker.
+- Host-side xrdp + XFCE is the recommended MVP remote desktop service. Guacamole should connect to `host.docker.internal:3389` over RDP.
 
 Important principles:
 
-- Do not build a remote desktop or streaming engine from scratch.
-- Integrate existing tools like Guacamole, Portainer, Cockpit, SSH, Tailscale, and WireGuard.
+- This project DOES provide browser-based remote desktop access by integrating existing tools.
+- Do not build a low-level remote desktop/video streaming protocol from scratch.
+- Treat Remote Desktop as the primary dashboard page. Service status, Portainer, Cockpit, Docker status, and actions are secondary helpers.
+- Integrate existing tools like Guacamole, xrdp, VNC/noVNC/KasmVNC, Portainer, Cockpit, SSH, Tailscale, and WireGuard.
 - Do not expose admin panels directly to the public internet.
 - Do not add arbitrary command execution to the web UI.
+- Do not make command running a major feature. SSH already handles terminal workflows.
 - Keep Docker/container controls allowlisted by config.
 - Keep host actions allowlisted by config and require confirmation for dangerous actions.
 - The frontend must never access the Docker socket directly.
@@ -36,3 +42,9 @@ Current config files:
 
 If local `config/*.yml` files exist, they override the examples. Dashboard settings changed in the UI are stored in the backend data volume as `settings.override.yml`.
 
+Important Make targets:
+
+- `make up`: main dashboard stack.
+- `make remote-up`: Guacamole, guacd, and PostgreSQL.
+- `make guacamole-init`: generate Guacamole PostgreSQL schema.
+- `make remote-down`: stop the remote desktop stack.

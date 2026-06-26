@@ -25,10 +25,32 @@ services:
     kind: docker_container
     container: scp-guacamole
 
+  - id: guacd
+    name: Guacamole Daemon
+    kind: docker_container
+    container: scp-guacd
+
+  - id: guacamole-db
+    name: Guacamole PostgreSQL
+    kind: docker_container
+    container: scp-guacamole-db
+
+  - id: host-rdp
+    name: Host RDP
+    kind: tcp
+    host: host.docker.internal
+    port: 3389
+
+  - id: host-vnc
+    name: Host VNC
+    kind: tcp
+    host: host.docker.internal
+    port: 5900
+    optional: true
+
   - id: sunshine
     name: Sunshine
     kind: tcp
     host: host.docker.internal
     port: 47984
     optional: true
-

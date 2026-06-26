@@ -61,6 +61,11 @@ services:
     volumes:
       - guacamole-db-data:/var/lib/postgresql/data
       - ./data/guacamole/initdb.sql:/docker-entrypoint-initdb.d/001-initdb.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     restart: unless-stopped
 
   guacd:
@@ -76,8 +81,10 @@ services:
     profiles:
       - remote
     depends_on:
-      - guacd
-      - guacamole-db
+      guacd:
+        condition: service_started
+      guacamole-db:
+        condition: service_healthy
     environment:
       GUACD_HOSTNAME: guacd
       POSTGRESQL_HOSTNAME: guacamole-db

@@ -10,11 +10,11 @@ import { RemoteAccessPage } from './pages/RemoteAccessPage';
 import { ServicesPage } from './pages/ServicesPage';
 import { SettingsPage } from './pages/SettingsPage';
 
-const pages: PageKey[] = ['home', 'docker', 'remote', 'services', 'actions', 'settings'];
+const pages: PageKey[] = ['remote', 'services', 'home', 'docker', 'actions', 'settings'];
 
 function pageFromHash(): PageKey {
   const value = window.location.hash.replace('#', '') as PageKey;
-  return pages.includes(value) ? value : 'home';
+  return pages.includes(value) ? value : 'remote';
 }
 
 export default function App() {
@@ -91,4 +91,3 @@ export default function App() {
     </Layout>
   );
 }
-

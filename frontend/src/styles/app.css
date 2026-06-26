@@ -144,6 +144,10 @@ a {
   text-align: left;
 }
 
+.navButton span {
+  overflow-wrap: anywhere;
+}
+
 .navButton:hover,
 .navButton.active {
   color: #fff;
@@ -400,6 +404,88 @@ tr:last-child td {
   gap: 14px;
 }
 
+.remoteHero {
+  min-height: 190px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 22px;
+  padding: 24px;
+  color: #f8fbfc;
+  background: #1e342f;
+  border-radius: 8px;
+}
+
+.remoteHero h2 {
+  margin: 14px 0 0;
+  font-size: clamp(1.45rem, 1.25rem + 0.7vw, 2.1rem);
+}
+
+.remoteHero p {
+  max-width: 760px;
+  margin: 10px 0 0;
+  color: #d8e7e3;
+}
+
+.remoteLaunch {
+  min-width: 170px;
+}
+
+.statusGrid,
+.checklist {
+  display: grid;
+  gap: 12px;
+}
+
+.statusGrid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.statusTile {
+  min-height: 96px;
+  display: grid;
+  align-content: space-between;
+  gap: 8px;
+  padding: 14px;
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.statusTile span,
+.statusTile small {
+  overflow-wrap: anywhere;
+}
+
+.statusTile span {
+  color: var(--text);
+  font-weight: 800;
+}
+
+.statusTile small {
+  color: var(--muted);
+}
+
+.checklist {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.checklist div {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.checklist svg {
+  flex: 0 0 auto;
+  color: var(--primary);
+}
+
 .linkCard {
   min-height: 112px;
   display: grid;
@@ -644,8 +730,14 @@ textarea:focus {
 
   .statsGrid,
   .linkGrid,
-  .addressList {
+  .addressList,
+  .statusGrid,
+  .checklist {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .remoteHero {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -663,7 +755,9 @@ textarea:focus {
 
   .statsGrid,
   .linkGrid,
-  .addressList {
+  .addressList,
+  .statusGrid,
+  .checklist {
     grid-template-columns: 1fr;
   }
 
@@ -686,4 +780,3 @@ textarea:focus {
     padding: 22px;
   }
 }
-
