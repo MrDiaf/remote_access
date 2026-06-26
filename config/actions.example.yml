@@ -1,0 +1,31 @@
+actions:
+  - id: restart_portainer
+    name: Restart Portainer
+    description: Restart the Portainer container through the Docker API.
+    type: docker_restart
+    containers:
+      - scp-portainer
+    requires_confirmation: true
+    enabled: true
+
+  - id: example_script
+    name: Run Example Script
+    description: Runs a harmless predefined script from the scripts directory.
+    type: script
+    command:
+      - /scripts/example-safe-action.sh
+    timeout_seconds: 20
+    requires_confirmation: false
+    enabled: true
+
+  - id: reboot_host
+    name: Reboot Host
+    description: Disabled example. Wire this to your own locked-down host-side reboot flow only if you accept the risk.
+    type: script
+    command:
+      - /scripts/reboot-host.example.sh
+    timeout_seconds: 10
+    requires_confirmation: true
+    dangerous: true
+    enabled: false
+

@@ -1,0 +1,34 @@
+services:
+  - id: docker
+    name: Docker Engine
+    kind: docker_api
+
+  - id: ssh
+    name: SSH
+    kind: tcp
+    host: host.docker.internal
+    port: 22
+
+  - id: cockpit
+    name: Cockpit
+    kind: tcp
+    host: host.docker.internal
+    port: 9090
+
+  - id: portainer
+    name: Portainer
+    kind: docker_container
+    container: scp-portainer
+
+  - id: guacamole
+    name: Guacamole
+    kind: docker_container
+    container: scp-guacamole
+
+  - id: sunshine
+    name: Sunshine
+    kind: tcp
+    host: host.docker.internal
+    port: 47984
+    optional: true
+

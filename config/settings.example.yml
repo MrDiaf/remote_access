@@ -1,0 +1,20 @@
+server:
+  name: Home Server
+
+links:
+  guacamole:
+    label: Guacamole
+    url: http://server-ip:8081/guacamole/
+  portainer:
+    label: Portainer
+    url: https://server-ip:9443/
+  cockpit:
+    label: Cockpit
+    url: https://server-ip:9090/
+
+docker:
+  allowed_containers:
+    - scp-portainer
+    - scp-guacamole
+    - scp-guacd
+
