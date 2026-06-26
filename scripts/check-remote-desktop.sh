@@ -81,28 +81,24 @@ section "Guacamole HTTP"
 check_url "$GUACAMOLE_URL" "Guacamole"
 check_url "http://127.0.0.1:${DASHBOARD_PORT}/guacamole/" "Dashboard proxied Guacamole"
 
-section "Host RDP from backend network"
-if [ "$(container_state scp-backend)" = "running" ]; then
-  if docker compose exec -T backend python - "$RDP_HOST" "$RDP_PORT" <<'PY'
-import socket
-import sys
-
-host = sys.argv[1]
-port = int(sys.argv[2])
-try:
-    with socket.create_connection((host, port), timeout=4):
-        print(f"ok: {host}:{port} reachable from backend container")
-except Exception as exc:
-    print(f"warn: {host}:{port} not reachable from backend container: {exc}")
-    sys.exit(1)
-PY
-  then
-    :
+section "Host RDP from guacd network"
+if [ "$(container_state scp-guacd)" = "running" ]; then
+  if docker compose exec -T guacd sh -c "getent hosts '$RDP_HOST' >/dev/null 2>&1"; then
+    resolved=$(docker compose exec -T guacd getent hosts "$RDP_HOST" | awk '{print $1}' | head -n 1)
+    printf "ok: %s resolves inside guacd as %s\n" "$RDP_HOST" "$resolved"
   else
-    printf "hint: install/start xrdp on the host with make install-host-remote-desktop\n"
+    printf "warn: %s does not resolve inside guacd\n" "$RDP_HOST"
+    printf "hint: recreate guacd after adding host-gateway mapping: make remote-up\n"
+  fi
+
+  if docker compose exec -T guacd sh -c "nc -z -w 4 '$RDP_HOST' '$RDP_PORT'" >/dev/null 2>&1; then
+    printf "ok: %s:%s reachable from guacd container\n" "$RDP_HOST" "$RDP_PORT"
+  else
+    printf "warn: %s:%s not reachable from guacd container\n" "$RDP_HOST" "$RDP_PORT"
+    printf "hint: run make enable-physical-screen on the host and make remote-up to recreate guacd\n"
   fi
 else
-  printf "warn: scp-backend is not running; run make up before checking container-network RDP\n"
+  printf "warn: scp-guacd is not running; run make remote-up before checking RDP from Guacamole\n"
 fi
 
 section "Host local services"

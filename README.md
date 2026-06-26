@@ -1,124 +1,137 @@
 # server-control-panel
 
-A browser-based remote control portal for a home server PC.
+A browser-based remote control portal for an Ubuntu home server PC.
 
-The main feature is browser-based remote desktop access to the server GUI, using Guacamole as the web gateway and xrdp/XFCE or VNC on the host. SSH already handles terminal control; this project is for visually controlling the server desktop from another computer with only a browser.
-
-The dashboard is intentionally a thin LAN/Tailscale/VPN portal. It does not require its own login for the MVP. Guacamole, Portainer, and Cockpit keep their own logins.
-
-## First Working Path
-
-For a server PC with a real logged-in GNOME desktop and monitor, use the physical-screen path:
+The main point of this project is simple:
 
 ```text
-Browser -> Dashboard :8080 -> Remote Desktop -> Guacamole -> guacd -> host.docker.internal:3389 -> GNOME Remote Desktop -> physical monitor session
+Any computer / phone / tablet with a browser
+  -> open the dashboard
+  -> click Remote Desktop
+  -> open Guacamole
+  -> control the Ubuntu server desktop
 ```
 
-For a headless or separate management session, use the xrdp/XFCE path:
+You do **not** need Windows. In tutorial videos, Windows is often just the RDP client. Here, **Guacamole is the RDP client**, and your browser views Guacamole.
+
+## What Runs Where
+
+Run this project on the **Ubuntu server PC** you want to control.
+
+Your daily computer only needs a browser.
 
 ```text
-Browser -> Dashboard :8080 -> Remote Desktop -> Guacamole -> guacd -> host.docker.internal:3389 -> xrdp -> XFCE
+Daily computer browser
+  -> http://server-ip:8080
+  -> Guacamole web UI
+  -> guacd container
+  -> Ubuntu server's remote desktop service
+  -> Ubuntu desktop screen/session
 ```
 
-Result: you can open the dashboard, click **Remote Desktop**, and control a Linux GUI session in the browser.
+## Recommended Setup
 
-xrdp usually gives a separate desktop session. That is good for server management. If you want the exact physical monitor session, prefer GNOME Remote Desktop on this project or add a VNC/x11vnc/wayvnc option on port `5900`.
+If the server has a real GNOME desktop and monitor, use:
 
-## Security Model
+```text
+GNOME Remote Desktop over RDP
+```
 
-Use LAN, Tailscale, WireGuard, or another VPN first.
+This is the path for controlling the actual logged-in Ubuntu desktop session.
 
-The custom dashboard has no login by default. Anyone who can reach it on your private network can open the dashboard and click the Guacamole entry point. Do not expose the dashboard, Guacamole, Portainer, Cockpit, RDP, VNC, or Docker access directly to the public internet.
+Use xrdp/XFCE only if you want a separate server-management desktop session.
 
-Before real use:
+## Security
 
-- Change every placeholder in `.env`.
-- Change the Guacamole default admin password immediately.
-- Use strong host Linux passwords for RDP.
-- Keep RDP `3389` and VNC `5900` private to host/LAN/VPN scope.
-- Use HTTPS and stronger access controls before any public exposure.
+This is a private LAN/Tailscale/WireGuard tool.
 
-## Ports
+The custom dashboard has no login for the MVP. Anyone who can reach it on your private network can open it. Guacamole, Portainer, and Cockpit keep their own logins.
 
-Browser/client connects to:
+Do not expose these ports directly to the public internet:
 
-- Dashboard: `http://server-ip:8080`
-- Guacamole direct: `http://server-ip:8081/guacamole/`
-- Guacamole through dashboard proxy: `http://server-ip:8080/guacamole/`
+- Dashboard `8080`
+- Guacamole `8081`
+- RDP `3389`
+- VNC `5900`
+- Portainer `9443`
+- Cockpit `9090`
 
-Guacamole connects internally to:
+## Fresh Setup After Git Pull
 
-- RDP on host: `host.docker.internal:3389`
+Run these commands on the Ubuntu server PC.
 
-Optional tools:
+1. Go to the project:
 
-- Portainer: `https://server-ip:9443`
-- Cockpit: `https://server-ip:9090`
-- VNC alternative: `5900`
+   ```sh
+   cd /path/to/remote_access
+   ```
 
-## Quick Start
-
-1. Create and edit the environment file:
+2. Create `.env` if it does not exist:
 
    ```sh
    cp .env.example .env
    ```
 
-2. Start the dashboard stack:
+3. Edit `.env` and change at least:
+
+   ```env
+   POSTGRES_PASSWORD=replace-with-a-strong-guacamole-db-password
+   ```
+
+4. Start the dashboard:
 
    ```sh
    make up
    ```
 
-3. If this server has a real GNOME desktop and monitor, enable physical-screen sharing:
-
-   ```sh
-   make enable-physical-screen
-   ```
-
-   For a separate XFCE management session instead, use:
-
-   ```sh
-   make install-host-remote-desktop
-   ```
-
-4. Start Guacamole:
+5. Start Guacamole:
 
    ```sh
    make remote-up
    ```
 
-5. Check the remote desktop path:
+6. Enable sharing of the physical GNOME screen:
+
+   ```sh
+   make enable-physical-screen
+   ```
+
+   It asks for a remote desktop username and password. Remember them. You will enter them in Guacamole.
+
+7. Check the whole remote desktop path:
 
    ```sh
    make check-remote
    ```
 
-6. Open:
+   You want to see:
+
+   ```text
+   ok: scp-guacamole is running
+   ok: scp-guacd is running
+   ok: scp-guacamole-db is running
+   ok: host.docker.internal resolves inside guacd
+   ok: host.docker.internal:3389 reachable from guacd container
+   ok: host is listening on TCP 3389
+   ```
+
+8. Open the dashboard from another computer:
 
    ```text
    http://server-ip:8080
    ```
 
-7. Click **Remote Desktop**.
+9. Click **Remote Desktop**.
 
-## First-Time Guacamole Setup
+## First Guacamole Login
 
-`make remote-up` runs `make guacamole-init` first if needed. That creates `data/guacamole/initdb.sql`, starts PostgreSQL, starts `guacd`, then starts Guacamole.
-
-Open Guacamole:
+Open:
 
 ```text
 http://server-ip:8080/guacamole/
 ```
 
-or:
-
-```text
-http://server-ip:8081/guacamole/
-```
-
-Initial Guacamole login is typically:
+Default login is usually:
 
 ```text
 username: guacadmin
@@ -127,165 +140,204 @@ password: guacadmin
 
 Change that password immediately.
 
-## Physical Monitor: GNOME Remote Desktop
+## Create The Physical Ubuntu Desktop Connection
 
-If the server is already logged into GNOME on its physical monitor, use:
+In Guacamole:
+
+1. Top-right `guacadmin`
+2. `Settings`
+3. `Connections`
+4. `New Connection`
+
+Use these values.
+
+Top section:
+
+```text
+Name: Ubuntu Physical Desktop
+Location: ROOT
+Protocol: RDP
+```
+
+Guacamole Proxy Parameters (GUACD):
+
+```text
+Hostname: guacd
+Port: 4822
+Encryption: blank / none
+```
+
+Parameters -> Network:
+
+```text
+Hostname: host.docker.internal
+Port: 3389
+```
+
+Parameters -> Authentication:
+
+```text
+Username: the username from make enable-physical-screen
+Password: the password from make enable-physical-screen
+Domain: blank
+Security mode: Any
+Disable authentication: unchecked
+Ignore server certificate: checked
+```
+
+Remote Desktop Gateway:
+
+```text
+leave everything blank
+```
+
+Save it.
+
+Go back to Guacamole Home and click:
+
+```text
+Ubuntu Physical Desktop
+```
+
+That should open the Ubuntu server desktop in the browser.
+
+## If You Already Had The Stack Running Before Git Pull
+
+After pulling new changes, run:
+
+```sh
+git pull
+make up
+make remote-up
+docker compose --profile remote up -d --force-recreate guacd
+make check-remote
+```
+
+The force-recreate step matters if `guacd` was already running before the Docker Compose host mapping was added.
+
+## Troubleshooting
+
+### Guacamole Says Disconnected Immediately
+
+Run on the server:
+
+```sh
+docker logs --tail=80 scp-guacd
+```
+
+If you see:
+
+```text
+DNS lookup failed (incorrect hostname?)
+```
+
+then `guacd` cannot resolve `host.docker.internal`.
+
+Fix:
+
+```sh
+git pull
+docker compose --profile remote up -d --force-recreate guacd
+make check-remote
+```
+
+You need:
+
+```text
+ok: host.docker.internal resolves inside guacd
+ok: host.docker.internal:3389 reachable from guacd container
+```
+
+### `make check-remote` Says RDP Is Not Reachable
+
+Run:
+
+```sh
+make enable-physical-screen
+make check-remote
+```
+
+Also make sure the Ubuntu server is logged into GNOME on the physical screen.
+
+### Guacamole Logs Mention VNC
+
+You created the wrong type of connection.
+
+For this setup, use:
+
+```text
+Protocol: RDP
+```
+
+Do not use VNC unless you intentionally set up a VNC server.
+
+### Wrong Username Or Password
+
+The Guacamole connection username/password must match what you entered when running:
 
 ```sh
 make enable-physical-screen
 ```
 
-This configures GNOME Remote Desktop for the current logged-in user, enables control input, and listens on RDP port `3389`.
+It does not have to be your Ubuntu login username unless you chose the same one.
 
-Then create a Guacamole RDP connection:
+## Separate xrdp/XFCE Session
 
-- Name: `Physical Server Screen`
-- Protocol: `RDP`
-- Hostname: `host.docker.internal`
-- Port: `3389`
-- Username: the username entered in `make enable-physical-screen`
-- Password: the password entered in `make enable-physical-screen`
-- Security mode: `Any` or `NLA`
-- Ignore server certificate: enabled
-
-Launch it from Guacamole. This is the path for seeing the actual server monitor session.
-
-## Separate Session: xrdp/XFCE
-
-Use this when you want a separate server-management desktop instead of the physical monitor session.
-
-## Create The xrdp/XFCE RDP Connection
-
-Inside Guacamole, create a new connection:
-
-- Name: `Home Server Desktop`
-- Protocol: `RDP`
-- Hostname: `host.docker.internal`
-- Port: `3389`
-- Username: your Linux host username
-- Password: your Linux host password
-- Security mode: `Any` or `NLA`
-- Ignore server certificate: enabled for a private lab with self-signed xrdp certificates
-
-Save it, then launch the connection. You should see the XFCE desktop session in the browser.
-
-If `host.docker.internal` does not work on your Linux Docker setup, use the host LAN IP or Tailscale IP.
-
-## Host xrdp/XFCE Install
-
-The host-side installer is:
-
-```sh
-scripts/install-xrdp-xfce-ubuntu.sh
-```
-
-The Make target is:
+If you want a separate desktop session instead of the physical monitor session:
 
 ```sh
 make install-host-remote-desktop
+make check-remote
 ```
 
-It installs:
-
-- `xfce4`
-- `xfce4-goodies`
-- `xrdp`
-- `xorgxrdp`
-- `dbus-x11`
-
-It enables and starts xrdp. RDP listens on TCP `3389`.
-
-For existing users, make sure `~/.xsession` contains:
-
-```sh
-startxfce4
-```
-
-## Remote Desktop Status API
-
-The backend exposes:
+Then create an RDP connection in Guacamole to:
 
 ```text
-GET /api/remote/status
+Hostname: host.docker.internal
+Port: 3389
+Username: your Ubuntu Linux username
+Password: your Ubuntu Linux password
 ```
 
-It reports:
-
-- Guacamole container status
-- guacd container status
-- PostgreSQL container status
-- configured Guacamole URL
-- configured RDP host and port
-- whether the RDP target is reachable from the backend/container network
-
-The frontend Remote Desktop page uses this endpoint.
+xrdp/XFCE is useful for headless management, but it usually does not show the exact physical monitor session.
 
 ## Make Commands
 
-Required workflow:
+Main commands:
 
-- `make up` starts dashboard, backend, proxy, and Portainer.
+- `make up` starts the dashboard stack.
 - `make remote-up` starts Guacamole, guacd, and PostgreSQL.
-- `make check-remote` checks the remote desktop path.
-- `make install-host-remote-desktop` installs xrdp + XFCE on Ubuntu/Debian.
 - `make enable-physical-screen` enables GNOME physical monitor sharing over RDP.
+- `make check-remote` checks the Guacamole-to-RDP path.
+- `make down` stops the default stack.
+- `make remote-down` stops the Guacamole stack.
 
 Other commands:
 
-- `make down`
+- `make build`
 - `make restart`
 - `make logs`
 - `make ps`
-- `make remote-down`
 - `make guacamole-init`
-- `make build`
+- `make install-host-remote-desktop`
 - `make backup`
 - `make restore`
 
-## Configuration
+## Ports
 
-Dashboard and remote desktop defaults live in:
+Browser/client connects to:
 
-```text
-config/settings.example.yml
-```
+- Dashboard: `http://server-ip:8080`
+- Guacamole direct: `http://server-ip:8081/guacamole/`
+- Guacamole through dashboard: `http://server-ip:8080/guacamole/`
 
-Important defaults:
+Guacamole connects internally to:
 
-```yaml
-remote_desktop:
-  protocol: RDP
-  guacamole_url: /guacamole/
-  rdp_host: host.docker.internal
-  rdp_port: 3389
-```
+- `host.docker.internal:3389`
 
-Copy the examples if you want local overrides:
+Optional:
 
-```sh
-cp config/settings.example.yml config/settings.yml
-cp config/services.example.yml config/services.yml
-cp config/actions.example.yml config/actions.yml
-```
+- Portainer: `https://server-ip:9443`
+- Cockpit: `https://server-ip:9090`
+- VNC alternative: `5900`
 
-## Optional Tools
-
-Portainer is included for Docker management:
-
-```text
-https://server-ip:9443
-```
-
-Cockpit should be installed on the host:
-
-```sh
-sudo ./scripts/install-cockpit-ubuntu.sh
-```
-
-Then open:
-
-```text
-https://server-ip:9090
-```
-
-Keep both private to LAN/VPN.

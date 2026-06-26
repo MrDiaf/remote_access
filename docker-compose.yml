@@ -73,6 +73,8 @@ services:
     container_name: scp-guacd
     profiles:
       - remote
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
 
   guacamole:
