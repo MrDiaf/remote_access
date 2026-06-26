@@ -9,12 +9,12 @@ sudo tailscale up
 
 ## Remote Desktop MVP
 
-The recommended first remote desktop setup is xrdp + XFCE on the host, with Guacamole in Docker connecting over RDP.
+The recommended first remote desktop setup is GNOME Remote Desktop on the host, with Guacamole in Docker connecting over RDP. This shares the physical logged-in GNOME screen.
 
 Install on Ubuntu/Debian:
 
 ```sh
-sudo ./scripts/install-xrdp-xfce-ubuntu.sh
+./scripts/enable-gnome-physical-rdp.sh
 ```
 
 Check it:
@@ -28,7 +28,13 @@ Guacamole RDP connection defaults:
 - Protocol: RDP
 - Hostname: `host.docker.internal`
 - Port: `3389`
-- Username/password: a real host Linux user
+- Username/password: the credentials entered in `enable-gnome-physical-rdp.sh`
+
+Use xrdp/XFCE only if you want a separate management desktop session instead of the physical monitor session:
+
+```sh
+sudo ./scripts/install-xrdp-xfce-ubuntu.sh
+```
 
 Keep RDP private to your LAN or VPN firewall scope.
 

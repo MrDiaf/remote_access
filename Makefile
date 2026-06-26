@@ -1,5 +1,5 @@
 COMPOSE ?= docker compose
-GUACAMOLE_VERSION ?= 1.5.5
+GUACAMOLE_VERSION ?= 1.6.0
 BACKUP_DIR ?= backups
 BACKUP_FILE ?= $(BACKUP_DIR)/server-control-panel-$$(date +%Y%m%d-%H%M%S).tar.gz
 
@@ -55,10 +55,24 @@ guacamole-init:
 	@if [ -d data/guacamole/initdb.sql ]; then \
 		printf "data/guacamole/initdb.sql is a directory; remove it and rerun make guacamole-init\n" >&2; \
 		exit 1; \
-	elif [ -f data/guacamole/initdb.sql ]; then \
+	elif [ -s data/guacamole/initdb.sql ]; then \
 		printf "data/guacamole/initdb.sql already exists\n"; \
 	else \
-		docker run --rm guacamole/guacamole:$(GUACAMOLE_VERSION) /opt/guacamole/bin/initdb.sh --postgresql > data/guacamole/initdb.sql; \
+		if [ -f data/guacamole/initdb.sql ]; then \
+			printf "data/guacamole/initdb.sql exists but is empty; regenerating\n"; \
+		fi; \
+		tmp=$$(mktemp data/guacamole/initdb.sql.XXXXXX); \
+		if docker run --rm guacamole/guacamole:$(GUACAMOLE_VERSION) /opt/guacamole/bin/initdb.sh --postgresql > "$$tmp"; then \
+			if [ ! -s "$$tmp" ]; then \
+				printf "Generated Guacamole schema is empty\n" >&2; \
+				rm -f "$$tmp"; \
+				exit 1; \
+			fi; \
+			mv "$$tmp" data/guacamole/initdb.sql; \
+		else \
+			rm -f "$$tmp"; \
+			exit 1; \
+		fi; \
 		printf "Generated data/guacamole/initdb.sql\n"; \
 	fi
 

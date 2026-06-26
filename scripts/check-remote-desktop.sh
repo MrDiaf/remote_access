@@ -77,6 +77,18 @@ for name in scp-guacamole scp-guacd scp-guacamole-db; do
   esac
 done
 
+if [ "$(container_state scp-guacd)" = "running" ]; then
+  guacd_image=$(docker inspect -f '{{.Config.Image}}' scp-guacd 2>/dev/null || true)
+  if [ -n "$guacd_image" ]; then
+    printf "info: scp-guacd image is %s\n" "$guacd_image"
+    case "$guacd_image" in
+      *:1.0.*|*:1.1.*|*:1.2.*|*:1.3.*|*:1.4.*|*:1.5.*)
+        printf "warn: GNOME physical-screen RDP needs guacd 1.6.0 or newer for Graphics Pipeline support\n"
+        ;;
+    esac
+  fi
+fi
+
 section "Guacamole HTTP"
 check_url "$GUACAMOLE_URL" "Guacamole"
 check_url "http://127.0.0.1:${DASHBOARD_PORT}/guacamole/" "Dashboard proxied Guacamole"
@@ -102,15 +114,23 @@ else
 fi
 
 section "Host local services"
+grd_status=""
+grd_rdp_enabled=0
 if command -v grdctl >/dev/null 2>&1; then
   printf "GNOME Remote Desktop status:\n"
-  grdctl status 2>&1 | sed 's/^/  /' || true
+  grd_status=$(grdctl status 2>&1 || true)
+  printf "%s\n" "$grd_status" | sed 's/^/  /'
+  if printf "%s\n" "$grd_status" | grep -q "Status: enabled"; then
+    grd_rdp_enabled=1
+  fi
 else
   printf "info: grdctl not found; GNOME physical screen sharing is not configured\n"
 fi
 
 if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet xrdp; then
   printf "ok: xrdp service is active on host\n"
+elif [ "$grd_rdp_enabled" = "1" ]; then
+  printf "info: xrdp is inactive; expected when using GNOME physical screen sharing\n"
 else
   printf "warn: xrdp service is not active on host or systemctl is unavailable\n"
 fi

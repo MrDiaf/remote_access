@@ -69,7 +69,7 @@ services:
     restart: unless-stopped
 
   guacd:
-    image: guacamole/guacd:1.5.5
+    image: guacamole/guacd:${GUACAMOLE_VERSION:-1.6.0}
     container_name: scp-guacd
     profiles:
       - remote
@@ -78,7 +78,7 @@ services:
     restart: unless-stopped
 
   guacamole:
-    image: guacamole/guacamole:1.5.5
+    image: guacamole/guacamole:${GUACAMOLE_VERSION:-1.6.0}
     container_name: scp-guacamole
     profiles:
       - remote

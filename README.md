@@ -76,6 +76,7 @@ Run these commands on the Ubuntu server PC.
 
    ```env
    POSTGRES_PASSWORD=replace-with-a-strong-guacamole-db-password
+   GUACAMOLE_VERSION=1.6.0
    ```
 
 4. Start the dashboard:
@@ -185,6 +186,12 @@ Disable authentication: unchecked
 Ignore server certificate: checked
 ```
 
+If Guacamole connects and immediately drops with a security-type error, try:
+
+```text
+Security mode: TLS
+```
+
 Remote Desktop Gateway:
 
 ```text
@@ -209,11 +216,12 @@ After pulling new changes, run:
 git pull
 make up
 make remote-up
-docker compose --profile remote up -d --force-recreate guacd
+docker compose pull guacd guacamole
+docker compose --profile remote up -d --force-recreate guacd guacamole
 make check-remote
 ```
 
-The force-recreate step matters if `guacd` was already running before the Docker Compose host mapping was added.
+The force-recreate step matters if `guacd` was already running before the Docker Compose host mapping or Guacamole version was changed.
 
 ## Troubleshooting
 
@@ -246,6 +254,30 @@ You need:
 ```text
 ok: host.docker.internal resolves inside guacd
 ok: host.docker.internal:3389 reachable from guacd container
+```
+
+If you see this in `journalctl --user -u gnome-remote-desktop`:
+
+```text
+Client did not advertise support for the Graphics Pipeline
+```
+
+then `guacd` is too old for GNOME's physical-screen RDP server.
+Use Guacamole/guacd `1.6.0` or newer, then recreate the containers:
+
+```sh
+git pull
+docker compose pull guacd guacamole
+docker compose --profile remote up -d --force-recreate guacd guacamole
+make check-remote
+```
+
+You want `make check-remote` to show:
+
+```text
+info: scp-guacd image is guacamole/guacd:1.6.0
+ok: host.docker.internal:3389 reachable from guacd container
+ok: host is listening on TCP 3389
 ```
 
 ### `make check-remote` Says RDP Is Not Reachable
@@ -340,4 +372,3 @@ Optional:
 - Portainer: `https://server-ip:9443`
 - Cockpit: `https://server-ip:9090`
 - VNC alternative: `5900`
-
