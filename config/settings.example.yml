@@ -18,3 +18,11 @@ docker:
     - scp-guacamole
     - scp-guacd
     - scp-guacamole-db
+
+remote_desktop:
+  protocol: RDP
+  guacamole_url: /guacamole/
+  rdp_host: host.docker.internal
+  rdp_port: 3389
+  vnc_host: host.docker.internal
+  vnc_port: 5900

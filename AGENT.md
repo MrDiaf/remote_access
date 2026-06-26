@@ -8,7 +8,7 @@ Project: `server-control-panel`
 
 This is a Docker Compose based homelab remote control portal for managing a home server from a browser over a private network. The project should stay VPN-first and security-conscious.
 
-The primary feature is browser-based remote desktop access. The user should be able to open one dashboard URL, log in, click Remote Desktop, open Guacamole, and visually control the server GUI through the browser.
+The primary feature is browser-based remote desktop access. The user should be able to open one dashboard URL from LAN/Tailscale, click Remote Desktop, open Guacamole, and visually control the server GUI through the browser. The custom dashboard MVP should not require its own login.
 
 Core architecture:
 
@@ -23,6 +23,7 @@ Core architecture:
 Important principles:
 
 - This project DOES provide browser-based remote desktop access by integrating existing tools.
+- Do not accept a diagnostics-only implementation. Remote Desktop must be a working first-class feature.
 - Do not build a low-level remote desktop/video streaming protocol from scratch.
 - Treat Remote Desktop as the primary dashboard page. Service status, Portainer, Cockpit, Docker status, and actions are secondary helpers.
 - Integrate existing tools like Guacamole, xrdp, VNC/noVNC/KasmVNC, Portainer, Cockpit, SSH, Tailscale, and WireGuard.
@@ -48,3 +49,5 @@ Important Make targets:
 - `make remote-up`: Guacamole, guacd, and PostgreSQL.
 - `make guacamole-init`: generate Guacamole PostgreSQL schema.
 - `make remote-down`: stop the remote desktop stack.
+- `make check-remote`: check Guacamole and host RDP readiness.
+- `make install-host-remote-desktop`: install xrdp + XFCE on Ubuntu/Debian host.

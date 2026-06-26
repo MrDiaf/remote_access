@@ -8,7 +8,7 @@ from typing import Any
 
 import yaml
 
-from .models import DashboardSettings, DashboardSettingsUpdate, LinkConfig
+from .models import DashboardSettings, DashboardSettingsUpdate, LinkConfig, RemoteDesktopConfig
 
 
 CONFIG_DIR = Path(os.environ.get("CONFIG_DIR", "config"))
@@ -84,6 +84,37 @@ def load_dashboard_settings() -> DashboardSettings:
     )
 
 
+def load_remote_desktop_config() -> RemoteDesktopConfig:
+    base = _read_yaml("settings.yml", "settings.example.yml")
+    merged = _deep_merge(base, _read_settings_override())
+
+    remote = merged.get("remote_desktop", {})
+    if not isinstance(remote, dict):
+        remote = {}
+
+    links = merged.get("links", {})
+    guacamole_link = ""
+    if isinstance(links, dict) and isinstance(links.get("guacamole"), dict):
+        guacamole_link = str(links["guacamole"].get("url", "")).strip()
+
+    protocol = str(remote.get("protocol", "RDP")).strip().upper() or "RDP"
+    guacamole_url = str(remote.get("guacamole_url", guacamole_link or "/guacamole/")).strip() or "/guacamole/"
+    rdp_host = str(remote.get("rdp_host", "host.docker.internal")).strip() or "host.docker.internal"
+    rdp_port = int(remote.get("rdp_port", 3389))
+
+    vnc_host_raw = remote.get("vnc_host")
+    vnc_port_raw = remote.get("vnc_port")
+
+    return RemoteDesktopConfig(
+        protocol=protocol,
+        guacamole_url=guacamole_url,
+        rdp_host=rdp_host,
+        rdp_port=rdp_port,
+        vnc_host=str(vnc_host_raw).strip() if vnc_host_raw else None,
+        vnc_port=int(vnc_port_raw) if vnc_port_raw else None,
+    )
+
+
 def save_dashboard_settings(update: DashboardSettingsUpdate) -> DashboardSettings:
     current = load_dashboard_settings()
     next_settings = {
@@ -122,4 +153,3 @@ def load_actions_config() -> list[dict[str, Any]]:
     raw = _read_yaml("actions.yml", "actions.example.yml")
     actions = raw.get("actions", [])
     return actions if isinstance(actions, list) else []
-

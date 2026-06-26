@@ -1,7 +1,5 @@
 docker==7.1.0
 fastapi==0.115.6
-itsdangerous==2.2.0
 psutil==6.1.1
 PyYAML==6.0.2
 uvicorn[standard]==0.34.0
-

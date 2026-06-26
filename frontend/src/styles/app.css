@@ -52,38 +52,11 @@ a {
   color: inherit;
 }
 
-.bootScreen,
-.loginScreen {
+.bootScreen {
   min-height: 100vh;
   display: grid;
   place-items: center;
   padding: 24px;
-}
-
-.loginPanel {
-  width: min(420px, 100%);
-  display: grid;
-  gap: 18px;
-  padding: 28px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
-}
-
-.loginPanel h1 {
-  margin: 0;
-  font-size: 1.45rem;
-}
-
-.loginMark {
-  width: 48px;
-  height: 48px;
-  display: grid;
-  place-items: center;
-  color: #fff;
-  background: var(--primary);
-  border-radius: 8px;
 }
 
 .shell {
@@ -404,6 +377,65 @@ tr:last-child td {
   gap: 14px;
 }
 
+.remotePage {
+  max-width: 1500px;
+}
+
+.desktopStage {
+  display: grid;
+  gap: 14px;
+}
+
+.desktopStageHeader {
+  min-height: 74px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.desktopStageHeader h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 1.35rem + 1.4vw, 3rem);
+}
+
+.desktopStageHeader p {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+
+.desktopStageActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.button.large {
+  min-height: 48px;
+  padding: 0 18px;
+  font-size: 1rem;
+}
+
+.remoteFrameWrap {
+  width: 100%;
+  min-height: 620px;
+  overflow: hidden;
+  background: #11191d;
+  border: 1px solid #24323a;
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.remoteFrame {
+  display: block;
+  width: 100%;
+  height: min(76vh, 820px);
+  min-height: 620px;
+  border: 0;
+  background: #11191d;
+}
+
 .remoteHero {
   min-height: 190px;
   display: grid;
@@ -484,6 +516,27 @@ tr:last-child td {
 .checklist svg {
   flex: 0 0 auto;
   color: var(--primary);
+}
+
+.methodSummary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.methodSummary svg {
+  flex: 0 0 auto;
+  color: var(--primary);
+}
+
+.methodSummary strong,
+.methodSummary span {
+  display: block;
+}
+
+.methodSummary span {
+  margin-top: 5px;
+  color: var(--muted);
 }
 
 .linkCard {
@@ -739,6 +792,16 @@ textarea:focus {
   .remoteHero {
     grid-template-columns: 1fr;
   }
+
+  .desktopStageHeader,
+  .desktopStageActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .desktopStageActions .button {
+    width: 100%;
+  }
 }
 
 @media (max-width: 640px) {
@@ -776,7 +839,8 @@ textarea:focus {
     padding: 14px;
   }
 
-  .loginPanel {
-    padding: 22px;
+  .remoteFrameWrap,
+  .remoteFrame {
+    min-height: 520px;
   }
 }

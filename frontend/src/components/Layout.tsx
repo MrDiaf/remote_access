@@ -2,7 +2,6 @@ import {
   Activity,
   Boxes,
   Home,
-  LogOut,
   Monitor,
   PlaySquare,
   ServerCog,
@@ -15,9 +14,7 @@ export type PageKey = 'home' | 'docker' | 'remote' | 'services' | 'actions' | 's
 type LayoutProps = {
   activePage: PageKey;
   serverName: string;
-  username: string;
   onNavigate: (page: PageKey) => void;
-  onLogout: () => void;
   children: ReactNode;
 };
 
@@ -33,9 +30,7 @@ const navItems: Array<{ key: PageKey; label: string; icon: typeof Home }> = [
 export function Layout({
   activePage,
   serverName,
-  username,
   onNavigate,
-  onLogout,
   children
 }: LayoutProps) {
   return (
@@ -67,10 +62,7 @@ export function Layout({
         </nav>
 
         <div className="sidebarFooter">
-          <span>{username}</span>
-          <button className="iconButton" type="button" onClick={onLogout} aria-label="Sign out" title="Sign out">
-            <LogOut size={18} aria-hidden="true" />
-          </button>
+          <span>LAN/Tailscale access</span>
         </div>
       </aside>
 

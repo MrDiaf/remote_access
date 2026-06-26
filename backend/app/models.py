@@ -5,15 +5,6 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 
-class LoginRequest(BaseModel):
-    username: str = Field(min_length=1, max_length=128)
-    password: str = Field(min_length=1, max_length=512)
-
-
-class AuthUser(BaseModel):
-    username: str
-
-
 class LinkConfig(BaseModel):
     label: str = Field(min_length=1, max_length=80)
     url: str = Field(min_length=1, max_length=500)
@@ -23,6 +14,15 @@ class DashboardSettings(BaseModel):
     server_name: str
     links: dict[str, LinkConfig]
     allowed_containers: list[str]
+
+
+class RemoteDesktopConfig(BaseModel):
+    protocol: str
+    guacamole_url: str
+    rdp_host: str
+    rdp_port: int
+    vnc_host: str | None = None
+    vnc_port: int | None = None
 
 
 class DashboardSettingsUpdate(BaseModel):
@@ -93,6 +93,19 @@ class ServiceStatus(BaseModel):
     optional: bool = False
 
 
+class RemoteDesktopStatus(BaseModel):
+    protocol: str
+    guacamole_url: str
+    rdp_host: str
+    rdp_port: int
+    rdp_reachable: bool
+    rdp_detail: str | None = None
+    guacamole_container: str
+    guacd_container: str
+    database_container: str
+    connection_hint: str
+
+
 class ActionSummary(BaseModel):
     id: str
     name: str
@@ -113,4 +126,3 @@ class ActionRunResult(BaseModel):
     message: str
     exit_code: int | None = None
     output: str | None = None
-

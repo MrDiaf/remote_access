@@ -3,7 +3,7 @@ GUACAMOLE_VERSION ?= 1.5.5
 BACKUP_DIR ?= backups
 BACKUP_FILE ?= $(BACKUP_DIR)/server-control-panel-$$(date +%Y%m%d-%H%M%S).tar.gz
 
-.PHONY: help up down restart build logs ps remote-up remote-down guacamole-init backend-shell frontend-shell db-shell clean backup restore
+.PHONY: help up down restart build logs ps remote-up remote-down guacamole-init check-remote install-host-remote-desktop backend-shell frontend-shell db-shell clean backup restore
 
 help:
 	@printf "server-control-panel commands\n\n"
@@ -16,6 +16,8 @@ help:
 	@printf "  make remote-up         Start Guacamole, guacd, and PostgreSQL\n"
 	@printf "  make remote-down       Stop the Guacamole remote desktop stack\n"
 	@printf "  make guacamole-init    Generate Guacamole PostgreSQL init schema\n"
+	@printf "  make check-remote      Check Guacamole and host RDP readiness\n"
+	@printf "  make install-host-remote-desktop  Install xrdp + XFCE on Ubuntu/Debian host\n"
 	@printf "  make backend-shell     Open a shell in the backend container\n"
 	@printf "  make frontend-shell    Open a shell in the frontend container\n"
 	@printf "  make db-shell          Open psql in the Guacamole database container\n"
@@ -58,6 +60,12 @@ guacamole-init:
 		docker run --rm guacamole/guacamole:$(GUACAMOLE_VERSION) /opt/guacamole/bin/initdb.sh --postgresql > data/guacamole/initdb.sql; \
 		printf "Generated data/guacamole/initdb.sql\n"; \
 	fi
+
+check-remote:
+	./scripts/check-remote-desktop.sh
+
+install-host-remote-desktop:
+	sudo ./scripts/install-xrdp-xfce-ubuntu.sh
 
 backend-shell:
 	$(COMPOSE) exec backend sh

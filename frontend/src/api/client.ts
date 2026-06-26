@@ -1,7 +1,3 @@
-export type AuthUser = {
-  username: string;
-};
-
 export type LinkConfig = {
   label: string;
   url: string;
@@ -46,6 +42,19 @@ export type ServiceStatus = {
   status: 'online' | 'offline' | 'unknown';
   detail: string | null;
   optional: boolean;
+};
+
+export type RemoteDesktopStatus = {
+  protocol: string;
+  guacamole_url: string;
+  rdp_host: string;
+  rdp_port: number;
+  rdp_reachable: boolean;
+  rdp_detail: string | null;
+  guacamole_container: string;
+  guacd_container: string;
+  database_container: string;
+  connection_hint: string;
 };
 
 export type ActionSummary = {
@@ -104,13 +113,6 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
-  login: (username: string, password: string) =>
-    request<AuthUser>('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ username, password })
-    }),
-  logout: () => request<{ ok: boolean }>('/api/auth/logout', { method: 'POST' }),
-  me: () => request<AuthUser>('/api/auth/me'),
   settings: () => request<DashboardSettings>('/api/settings'),
   updateSettings: (settings: DashboardSettings) =>
     request<DashboardSettings>('/api/settings', {
@@ -128,6 +130,7 @@ export const api = {
       method: 'POST'
     }),
   services: () => request<ServiceStatus[]>('/api/services'),
+  remoteStatus: () => request<RemoteDesktopStatus>('/api/remote/status'),
   actions: () => request<ActionSummary[]>('/api/actions'),
   runAction: (id: string, confirmed: boolean) =>
     request<ActionRunResult>(`/api/actions/${encodeURIComponent(id)}/run`, {
@@ -135,4 +138,3 @@ export const api = {
       body: JSON.stringify({ confirmed })
     })
 };
-

@@ -47,8 +47,4 @@ Recommended firewall stance:
 - Keep Portainer, Guacamole, Cockpit, RDP, VNC, and Docker private.
 - Do not expose `/var/run/docker.sock` over TCP.
 
-For HTTPS, terminate TLS through a trusted reverse proxy, Tailscale Serve/Funnel for private use, or a local certificate flow you control. When using HTTPS, set:
-
-```env
-DASHBOARD_COOKIE_SECURE=true
-```
+For HTTPS, terminate TLS through a trusted reverse proxy, Tailscale Serve/Funnel for private use, or a local certificate flow you control.
