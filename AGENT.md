@@ -47,6 +47,12 @@ Remote desktop operational notes:
 - Correct Guacamole connection fields for physical GNOME: protocol `RDP`; GUACD hostname `guacd`; GUACD port `4822`; network hostname `host.docker.internal`; network port `3389`; domain blank; ignore server certificate checked; Remote Desktop Gateway blank. If security negotiation drops, try security mode `TLS`.
 - The user's real stack often runs on another Ubuntu server PC after `git pull`; local checks in this workspace may not reflect the actual host state unless the user says they are running here.
 
+Next session TODO:
+
+- See `TODO.md` before starting new feature work.
+- The next UX focus is remote desktop reliability and control: investigate freezes when switching windows, improve keyboard/input capture so commands go to the remote desktop after focus, and design a phone-friendly remote mode where the screen behaves like a trackpad and text entry can summon the phone keyboard.
+- These are TODOs only as of this handoff; do not assume they have been implemented.
+
 Current config files:
 
 - `config/settings.example.yml`
