@@ -19,6 +19,7 @@ Core architecture:
 - `guacamole`, `guacd`, `guacamole-db`: recommended default browser remote desktop stack, started with `make remote-up`.
 - Cockpit is intentionally installed on the host OS, not forced into Docker.
 - Host-side xrdp + XFCE is the recommended MVP remote desktop service. Guacamole should connect to `host.docker.internal:3389` over RDP.
+- If the server has a physical GNOME monitor session, prefer GNOME Remote Desktop via `make enable-physical-screen` so Guacamole controls the actual logged-in screen instead of a separate xrdp session.
 
 Important principles:
 
@@ -51,3 +52,4 @@ Important Make targets:
 - `make remote-down`: stop the remote desktop stack.
 - `make check-remote`: check Guacamole and host RDP readiness.
 - `make install-host-remote-desktop`: install xrdp + XFCE on Ubuntu/Debian host.
+- `make enable-physical-screen`: enable GNOME physical monitor sharing over RDP.

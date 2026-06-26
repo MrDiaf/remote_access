@@ -106,6 +106,13 @@ else
 fi
 
 section "Host local services"
+if command -v grdctl >/dev/null 2>&1; then
+  printf "GNOME Remote Desktop status:\n"
+  grdctl status 2>&1 | sed 's/^/  /' || true
+else
+  printf "info: grdctl not found; GNOME physical screen sharing is not configured\n"
+fi
+
 if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet xrdp; then
   printf "ok: xrdp service is active on host\n"
 else

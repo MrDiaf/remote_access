@@ -8,7 +8,13 @@ The dashboard is intentionally a thin LAN/Tailscale/VPN portal. It does not requ
 
 ## First Working Path
 
-The MVP path is:
+For a server PC with a real logged-in GNOME desktop and monitor, use the physical-screen path:
+
+```text
+Browser -> Dashboard :8080 -> Remote Desktop -> Guacamole -> guacd -> host.docker.internal:3389 -> GNOME Remote Desktop -> physical monitor session
+```
+
+For a headless or separate management session, use the xrdp/XFCE path:
 
 ```text
 Browser -> Dashboard :8080 -> Remote Desktop -> Guacamole -> guacd -> host.docker.internal:3389 -> xrdp -> XFCE
@@ -16,7 +22,7 @@ Browser -> Dashboard :8080 -> Remote Desktop -> Guacamole -> guacd -> host.docke
 
 Result: you can open the dashboard, click **Remote Desktop**, and control a Linux GUI session in the browser.
 
-xrdp usually gives a separate desktop session. That is good for server management. If you want to control the exact physical monitor session later, add a VNC/x11vnc/wayvnc option on port `5900`.
+xrdp usually gives a separate desktop session. That is good for server management. If you want the exact physical monitor session, prefer GNOME Remote Desktop on this project or add a VNC/x11vnc/wayvnc option on port `5900`.
 
 ## Security Model
 
@@ -64,7 +70,13 @@ Optional tools:
    make up
    ```
 
-3. Install the host remote desktop service:
+3. If this server has a real GNOME desktop and monitor, enable physical-screen sharing:
+
+   ```sh
+   make enable-physical-screen
+   ```
+
+   For a separate XFCE management session instead, use:
 
    ```sh
    make install-host-remote-desktop
@@ -115,7 +127,34 @@ password: guacadmin
 
 Change that password immediately.
 
-## Create The RDP Connection
+## Physical Monitor: GNOME Remote Desktop
+
+If the server is already logged into GNOME on its physical monitor, use:
+
+```sh
+make enable-physical-screen
+```
+
+This configures GNOME Remote Desktop for the current logged-in user, enables control input, and listens on RDP port `3389`.
+
+Then create a Guacamole RDP connection:
+
+- Name: `Physical Server Screen`
+- Protocol: `RDP`
+- Hostname: `host.docker.internal`
+- Port: `3389`
+- Username: the username entered in `make enable-physical-screen`
+- Password: the password entered in `make enable-physical-screen`
+- Security mode: `Any` or `NLA`
+- Ignore server certificate: enabled
+
+Launch it from Guacamole. This is the path for seeing the actual server monitor session.
+
+## Separate Session: xrdp/XFCE
+
+Use this when you want a separate server-management desktop instead of the physical monitor session.
+
+## Create The xrdp/XFCE RDP Connection
 
 Inside Guacamole, create a new connection:
 
@@ -189,6 +228,7 @@ Required workflow:
 - `make remote-up` starts Guacamole, guacd, and PostgreSQL.
 - `make check-remote` checks the remote desktop path.
 - `make install-host-remote-desktop` installs xrdp + XFCE on Ubuntu/Debian.
+- `make enable-physical-screen` enables GNOME physical monitor sharing over RDP.
 
 Other commands:
 
@@ -249,4 +289,3 @@ https://server-ip:9090
 ```
 
 Keep both private to LAN/VPN.
-
