@@ -12,16 +12,15 @@ Remaining items are sorted by rough implementation difficulty.
 - Added a `make shutdown` / `make maintenance-stop` command that gracefully stops the default stack and Guacamole remote desktop stack in a predictable order.
 - Added `make refresh` to rebuild/recreate the dashboard, start remote desktop helpers, and reapply saved remote keyboard settings.
 - Added a best-effort Remote Desktop Focus mode using browser fullscreen, iframe focus, and browser keyboard lock when available.
+- Set touch devices to Guacamole's native relative/touchpad mouse mode by default. This makes one-finger drag move the remote pointer instead of clicking the exact touched screen position.
+- Added a touch-device toggle on Remote Desktop for switching Guacamole between Touchpad and Touchscreen mouse modes. The toggle reloads the embedded Guacamole frame so the saved browser preference is picked up.
 
 ## Medium
 
 - Test and harden the focused/fullscreen remote desktop mode. Confirm which shortcuts browsers still reserve locally and which ones Guacamole receives reliably.
 - Improve input capture for the embedded remote desktop. After the user clicks the remote desktop area, keyboard commands should go to the remote Ubuntu session instead of the local PC/browser whenever the browser allows it.
-- Start the phone-friendly remote control work with the simplest usable version:
-  - Add a mobile remote-control mode for phones.
-  - On phone, the remote screen should behave like a large trackpad: drag moves the pointer, tap clicks, long press/right-click behavior should be considered, and scrolling should be usable.
-  - When the user taps a remote text field, provide a way to open the phone keyboard and send typed text to the remote desktop.
-  - Keep the first phone experience practical and obvious; the goal is usable remote control, not a decorative mobile layout.
+- Test Guacamole native Touchpad mode on a real phone. Confirm one-finger drag moves the remote pointer, tap clicks, two-finger scroll works, and Guacamole's text input mode still brings up the phone keyboard when needed.
+- If the phone preference does not stick on the server, verify the embedded Guacamole URL is same-origin (`/guacamole/`) so the dashboard can set Guacamole's `GUAC_PREFERENCES` localStorage value before the iframe loads.
 
 ## Harder
 

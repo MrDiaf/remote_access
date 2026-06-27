@@ -194,6 +194,15 @@ Keyboard layout / server-layout: en-us-qwerty by default, or the Remote keyboard
 
 Changing the dashboard's Remote keyboard setting now applies that value to Guacamole's RDP `server-layout` parameter. Reconnect any open Guacamole session before testing keys again.
 
+On phones and other touch devices, the embedded Remote Desktop page sets Guacamole's native browser preferences before loading the iframe:
+
+```text
+emulateAbsoluteMouse: false
+inputMethod: text
+```
+
+This makes Guacamole use Touchpad mode by default, where dragging moves the remote pointer instead of clicking the exact point touched on the phone screen. Use the Touchpad/Touchscreen button on the Remote Desktop page to switch modes; the embedded Guacamole frame reloads after the change.
+
 If the dashboard still shows old code after `git pull`, run:
 
 ```sh

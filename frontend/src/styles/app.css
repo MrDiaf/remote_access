@@ -693,9 +693,12 @@ textarea:focus {
   gap: 12px;
 }
 
-.settingsGrid,
-.preferenceGrid {
+.settingsGrid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.preferenceGrid {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
 }
 
 .preferenceTile {

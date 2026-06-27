@@ -15,8 +15,75 @@ type RemoteAccessPageProps = {
   settings: DashboardSettings | null;
 };
 
+type GuacamolePreferences = {
+  emulateAbsoluteMouse?: boolean;
+  inputMethod?: string;
+  [key: string]: unknown;
+};
+
+type TouchMouseMode = 'touchpad' | 'touchscreen';
+
+const GUACAMOLE_PREFERENCES_KEY = 'GUAC_PREFERENCES';
+const DASHBOARD_TOUCH_MOUSE_MODE_KEY = 'SCP_GUAC_TOUCH_MOUSE_MODE';
+
 function containerTone(state: string) {
   return state === 'running' ? 'online' : state || 'unknown';
+}
+
+function hasTouchInput() {
+  if (typeof window === 'undefined') return false;
+  return navigator.maxTouchPoints > 0 || window.matchMedia?.('(pointer: coarse)').matches === true;
+}
+
+function readGuacamolePreferences(): GuacamolePreferences {
+  try {
+    const stored = window.localStorage.getItem(GUACAMOLE_PREFERENCES_KEY);
+    return stored ? (JSON.parse(stored) as GuacamolePreferences) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeGuacamolePreferences(mode: TouchMouseMode, useTextInput: boolean) {
+  const current = readGuacamolePreferences();
+  const next: GuacamolePreferences = {
+    ...current,
+    emulateAbsoluteMouse: mode === 'touchscreen'
+  };
+
+  if (useTextInput) {
+    next.inputMethod = 'text';
+  }
+
+  window.localStorage.setItem(GUACAMOLE_PREFERENCES_KEY, JSON.stringify(next));
+  window.localStorage.setItem(DASHBOARD_TOUCH_MOUSE_MODE_KEY, mode);
+}
+
+function readSavedTouchMouseMode(): TouchMouseMode | null {
+  try {
+    const mode = window.localStorage.getItem(DASHBOARD_TOUCH_MOUSE_MODE_KEY);
+    return mode === 'touchpad' || mode === 'touchscreen' ? mode : null;
+  } catch {
+    return null;
+  }
+}
+
+function currentGuacamoleTouchMouseMode(): TouchMouseMode {
+  return readGuacamolePreferences().emulateAbsoluteMouse === false ? 'touchpad' : 'touchscreen';
+}
+
+function initializeGuacamoleTouchPreferences(): TouchMouseMode {
+  if (typeof window === 'undefined') return 'touchscreen';
+
+  const savedMode = readSavedTouchMouseMode();
+  const touchDevice = hasTouchInput();
+  const mode = savedMode || (touchDevice ? 'touchpad' : currentGuacamoleTouchMouseMode());
+
+  if (savedMode || touchDevice) {
+    writeGuacamolePreferences(mode, touchDevice);
+  }
+
+  return mode;
 }
 
 export function RemoteAccessPage({ settings }: RemoteAccessPageProps) {
@@ -26,8 +93,11 @@ export function RemoteAccessPage({ settings }: RemoteAccessPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
+  const [touchMouseMode, setTouchMouseMode] = useState<TouchMouseMode>(initializeGuacamoleTouchPreferences);
+  const [guacamoleFrameKey, setGuacamoleFrameKey] = useState(0);
 
   const guacamoleUrl = status?.guacamole_url || settings?.links.guacamole?.url || '/guacamole/';
+  const touchInput = hasTouchInput();
   const remoteInput = settings?.remote_input || defaultRemoteInput;
   const rdpTarget = useMemo(
     () => (status ? `${status.rdp_host}:${status.rdp_port}` : 'host.docker.internal:3389'),
@@ -94,6 +164,13 @@ export function RemoteAccessPage({ settings }: RemoteAccessPageProps) {
     }
   }
 
+  function toggleTouchMouseMode() {
+    const nextMode = touchMouseMode === 'touchpad' ? 'touchscreen' : 'touchpad';
+    writeGuacamolePreferences(nextMode, touchInput);
+    setTouchMouseMode(nextMode);
+    setGuacamoleFrameKey((current) => current + 1);
+  }
+
   useEffect(() => {
     void loadStatus();
   }, []);
@@ -147,6 +224,16 @@ export function RemoteAccessPage({ settings }: RemoteAccessPageProps) {
               <RefreshCw size={16} aria-hidden="true" />
               Refresh
             </button>
+            {touchInput ? (
+              <button
+                className={touchMouseMode === 'touchpad' ? 'button primary' : 'button secondary'}
+                type="button"
+                onClick={toggleTouchMouseMode}
+              >
+                <MousePointer2 size={16} aria-hidden="true" />
+                {touchMouseMode === 'touchpad' ? 'Touchpad' : 'Touchscreen'}
+              </button>
+            ) : null}
             <button className="button secondary" type="button" onClick={toggleFocusMode}>
               {focusMode ? <Minimize2 size={16} aria-hidden="true" /> : <Maximize2 size={16} aria-hidden="true" />}
               {focusMode ? 'Exit Focus' : 'Focus'}
@@ -162,6 +249,7 @@ export function RemoteAccessPage({ settings }: RemoteAccessPageProps) {
 
         <div className="remoteFrameWrap" onMouseEnter={focusRemoteFrame}>
           <iframe
+            key={guacamoleFrameKey}
             ref={remoteFrameRef}
             className="remoteFrame"
             src={guacamoleUrl}
@@ -191,6 +279,13 @@ export function RemoteAccessPage({ settings }: RemoteAccessPageProps) {
             <span>Release capture</span>
             <strong>{optionLabel(captureReleaseOptions, remoteInput.capture_release_shortcut)}</strong>
           </div>
+          {touchInput ? (
+            <div className="preferenceTile">
+              <MousePointer2 size={20} aria-hidden="true" />
+              <span>Phone mouse</span>
+              <strong>{touchMouseMode === 'touchpad' ? 'Touchpad' : 'Touchscreen'}</strong>
+            </div>
+          ) : null}
         </div>
       </section>
 
