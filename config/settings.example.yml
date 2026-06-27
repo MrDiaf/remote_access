@@ -26,3 +26,7 @@ remote_desktop:
   rdp_port: 3389
   vnc_host: host.docker.internal
   vnc_port: 5900
+  input:
+    local_keyboard_layout: auto
+    remote_keyboard_layout: en-us-qwerty
+    capture_release_shortcut: escape

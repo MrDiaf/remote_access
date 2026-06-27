@@ -1,8 +1,15 @@
-import { CheckSquare, ExternalLink, Monitor, RefreshCw } from 'lucide-react';
+import { CheckSquare, ExternalLink, Keyboard, Monitor, MousePointer2, RefreshCw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { ApiError, api, type DashboardSettings, type RemoteDesktopStatus } from '../api/client';
 import { StatusBadge } from '../components/StatusBadge';
+import {
+  captureReleaseOptions,
+  defaultRemoteInput,
+  localKeyboardLayoutOptions,
+  optionLabel,
+  remoteKeyboardLayoutOptions
+} from '../remoteInputOptions';
 
 type RemoteAccessPageProps = {
   settings: DashboardSettings | null;
@@ -18,6 +25,7 @@ export function RemoteAccessPage({ settings }: RemoteAccessPageProps) {
   const [busy, setBusy] = useState(false);
 
   const guacamoleUrl = status?.guacamole_url || settings?.links.guacamole?.url || '/guacamole/';
+  const remoteInput = settings?.remote_input || defaultRemoteInput;
   const rdpTarget = useMemo(
     () => (status ? `${status.rdp_host}:${status.rdp_port}` : 'host.docker.internal:3389'),
     [status]
@@ -65,6 +73,29 @@ export function RemoteAccessPage({ settings }: RemoteAccessPageProps) {
 
         <div className="remoteFrameWrap">
           <iframe className="remoteFrame" src={guacamoleUrl} title="Guacamole Remote Desktop" />
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panelHeader">
+          <h2>Input Preferences</h2>
+        </div>
+        <div className="preferenceGrid">
+          <div className="preferenceTile">
+            <Keyboard size={20} aria-hidden="true" />
+            <span>Local keyboard</span>
+            <strong>{optionLabel(localKeyboardLayoutOptions, remoteInput.local_keyboard_layout)}</strong>
+          </div>
+          <div className="preferenceTile">
+            <Keyboard size={20} aria-hidden="true" />
+            <span>Remote keyboard</span>
+            <strong>{optionLabel(remoteKeyboardLayoutOptions, remoteInput.remote_keyboard_layout)}</strong>
+          </div>
+          <div className="preferenceTile">
+            <MousePointer2 size={20} aria-hidden="true" />
+            <span>Release capture</span>
+            <strong>{optionLabel(captureReleaseOptions, remoteInput.capture_release_shortcut)}</strong>
+          </div>
         </div>
       </section>
 

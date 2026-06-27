@@ -8,13 +8,36 @@ from typing import Any
 
 import yaml
 
-from .models import DashboardSettings, DashboardSettingsUpdate, LinkConfig, RemoteDesktopConfig
+from .models import DashboardSettings, DashboardSettingsUpdate, LinkConfig, RemoteDesktopConfig, RemoteInputSettings
 
 
 CONFIG_DIR = Path(os.environ.get("CONFIG_DIR", "config"))
 DATA_DIR = Path(os.environ.get("DATA_DIR", "data"))
 SETTINGS_OVERRIDE = DATA_DIR / "settings.override.yml"
 CONTAINER_NAME_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$")
+REMOTE_KEYBOARD_LAYOUTS = {
+    "en-us-qwerty",
+    "en-gb-qwerty",
+    "sv-se-qwerty",
+    "da-dk-qwerty",
+    "no-no-qwerty",
+    "fi-fi-qwerty",
+    "de-de-qwertz",
+    "de-ch-qwertz",
+    "fr-fr-azerty",
+    "fr-be-azerty",
+    "fr-ch-qwertz",
+    "es-es-qwerty",
+    "es-latam-qwerty",
+    "it-it-qwerty",
+    "pt-br-qwerty",
+    "hu-hu-qwertz",
+    "ja-jp-qwerty",
+    "tr-tr-qwerty",
+    "failsafe",
+}
+LOCAL_KEYBOARD_LAYOUTS = (REMOTE_KEYBOARD_LAYOUTS - {"failsafe"}) | {"auto"}
+CAPTURE_RELEASE_SHORTCUTS = {"escape", "ctrl-alt", "ctrl-shift", "manual"}
 
 
 def _read_yaml(primary_name: str, fallback_name: str) -> dict[str, Any]:
@@ -57,6 +80,37 @@ def _sanitize_container_names(names: list[str]) -> list[str]:
     return clean
 
 
+def _sanitize_choice(value: Any, allowed: set[str], fallback: str) -> str:
+    candidate = str(value or "").strip().lower()
+    return candidate if candidate in allowed else fallback
+
+
+def _load_remote_input_settings(raw: Any) -> RemoteInputSettings:
+    remote = raw.get("remote_desktop", {}) if isinstance(raw, dict) else {}
+    input_settings = remote.get("input", {}) if isinstance(remote, dict) else {}
+    if not isinstance(input_settings, dict):
+        input_settings = {}
+
+    return RemoteInputSettings(
+        local_keyboard_layout=_sanitize_choice(input_settings.get("local_keyboard_layout"), LOCAL_KEYBOARD_LAYOUTS, "auto"),
+        remote_keyboard_layout=_sanitize_choice(
+            input_settings.get("remote_keyboard_layout"), REMOTE_KEYBOARD_LAYOUTS, "en-us-qwerty"
+        ),
+        capture_release_shortcut=_sanitize_choice(
+            input_settings.get("capture_release_shortcut"), CAPTURE_RELEASE_SHORTCUTS, "escape"
+        ),
+    )
+
+
+def _sanitize_remote_input_settings(settings: RemoteInputSettings) -> RemoteInputSettings:
+    raw = settings.model_dump()
+    return RemoteInputSettings(
+        local_keyboard_layout=_sanitize_choice(raw.get("local_keyboard_layout"), LOCAL_KEYBOARD_LAYOUTS, "auto"),
+        remote_keyboard_layout=_sanitize_choice(raw.get("remote_keyboard_layout"), REMOTE_KEYBOARD_LAYOUTS, "en-us-qwerty"),
+        capture_release_shortcut=_sanitize_choice(raw.get("capture_release_shortcut"), CAPTURE_RELEASE_SHORTCUTS, "escape"),
+    )
+
+
 def load_dashboard_settings() -> DashboardSettings:
     base = _read_yaml("settings.yml", "settings.example.yml")
     merged = _deep_merge(base, _read_settings_override())
@@ -81,6 +135,7 @@ def load_dashboard_settings() -> DashboardSettings:
         server_name=server_name,
         links=links,
         allowed_containers=allowed,
+        remote_input=_load_remote_input_settings(merged),
     )
 
 
@@ -116,11 +171,19 @@ def load_remote_desktop_config() -> RemoteDesktopConfig:
 
 
 def save_dashboard_settings(update: DashboardSettingsUpdate) -> DashboardSettings:
+    base = _read_yaml("settings.yml", "settings.example.yml")
+    merged = _deep_merge(base, _read_settings_override())
     current = load_dashboard_settings()
+    remote_desktop = deepcopy(merged.get("remote_desktop", {}))
+    if not isinstance(remote_desktop, dict):
+        remote_desktop = {}
+    remote_desktop["input"] = current.remote_input.model_dump()
+
     next_settings = {
         "server": {"name": current.server_name},
         "links": {key: value.model_dump() for key, value in current.links.items()},
         "docker": {"allowed_containers": current.allowed_containers},
+        "remote_desktop": remote_desktop,
     }
 
     if update.server_name is not None:
@@ -135,6 +198,9 @@ def save_dashboard_settings(update: DashboardSettingsUpdate) -> DashboardSetting
 
     if update.allowed_containers is not None:
         next_settings["docker"]["allowed_containers"] = _sanitize_container_names(update.allowed_containers)
+
+    if update.remote_input is not None:
+        next_settings["remote_desktop"]["input"] = _sanitize_remote_input_settings(update.remote_input).model_dump()
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     with SETTINGS_OVERRIDE.open("w", encoding="utf-8") as handle:

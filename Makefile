@@ -3,12 +3,13 @@ GUACAMOLE_VERSION ?= 1.6.0
 BACKUP_DIR ?= backups
 BACKUP_FILE ?= $(BACKUP_DIR)/server-control-panel-$$(date +%Y%m%d-%H%M%S).tar.gz
 
-.PHONY: help up down restart build logs ps remote-up remote-down guacamole-init check-remote install-host-remote-desktop enable-physical-screen backend-shell frontend-shell db-shell clean backup restore
+.PHONY: help up down shutdown maintenance-stop restart build logs ps remote-up remote-down guacamole-init check-remote install-host-remote-desktop enable-physical-screen backend-shell frontend-shell db-shell clean backup restore
 
 help:
 	@printf "server-control-panel commands\n\n"
 	@printf "  make up                Start dashboard, backend, proxy, and Portainer\n"
 	@printf "  make down              Stop the default stack\n"
+	@printf "  make shutdown          Gracefully stop dashboard and remote desktop stacks\n"
 	@printf "  make restart           Restart the default stack\n"
 	@printf "  make build             Rebuild images\n"
 	@printf "  make logs              Follow logs\n"
@@ -31,6 +32,15 @@ up:
 
 down:
 	$(COMPOSE) down
+
+shutdown: maintenance-stop
+
+maintenance-stop:
+	@printf "Stopping Guacamole remote desktop stack...\n"
+	$(COMPOSE) --profile remote stop guacamole guacd guacamole-db
+	@printf "Stopping default dashboard stack...\n"
+	$(COMPOSE) down
+	@printf "All project services are stopped for maintenance.\n"
 
 restart:
 	$(COMPOSE) restart

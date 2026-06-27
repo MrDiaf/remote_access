@@ -3,10 +3,17 @@ export type LinkConfig = {
   url: string;
 };
 
+export type RemoteInputSettings = {
+  local_keyboard_layout: string;
+  remote_keyboard_layout: string;
+  capture_release_shortcut: string;
+};
+
 export type DashboardSettings = {
   server_name: string;
   links: Record<string, LinkConfig>;
   allowed_containers: string[];
+  remote_input: RemoteInputSettings;
 };
 
 export type SystemInfo = {
@@ -120,7 +127,8 @@ export const api = {
       body: JSON.stringify({
         server_name: settings.server_name,
         links: settings.links,
-        allowed_containers: settings.allowed_containers
+        allowed_containers: settings.allowed_containers,
+        remote_input: settings.remote_input
       })
     }),
   system: () => request<SystemInfo>('/api/system'),

@@ -10,10 +10,17 @@ class LinkConfig(BaseModel):
     url: str = Field(min_length=1, max_length=500)
 
 
+class RemoteInputSettings(BaseModel):
+    local_keyboard_layout: str = Field(default="auto", min_length=1, max_length=40)
+    remote_keyboard_layout: str = Field(default="en-us-qwerty", min_length=1, max_length=40)
+    capture_release_shortcut: str = Field(default="escape", min_length=1, max_length=40)
+
+
 class DashboardSettings(BaseModel):
     server_name: str
     links: dict[str, LinkConfig]
     allowed_containers: list[str]
+    remote_input: RemoteInputSettings
 
 
 class RemoteDesktopConfig(BaseModel):
@@ -29,6 +36,7 @@ class DashboardSettingsUpdate(BaseModel):
     server_name: str | None = Field(default=None, min_length=1, max_length=80)
     links: dict[str, LinkConfig] | None = None
     allowed_containers: list[str] | None = None
+    remote_input: RemoteInputSettings | None = None
 
 
 class HealthResponse(BaseModel):

@@ -186,6 +186,12 @@ Disable authentication: unchecked
 Ignore server certificate: checked
 ```
 
+Parameters -> Input:
+
+```text
+Keyboard layout / server-layout: en-us-qwerty by default, or the Remote keyboard value from dashboard Settings
+```
+
 If Guacamole connects and immediately drops with a security-type error, try:
 
 ```text
@@ -339,6 +345,7 @@ Main commands:
 
 - `make up` starts the dashboard stack.
 - `make remote-up` starts Guacamole, guacd, and PostgreSQL.
+- `make shutdown` gracefully stops the dashboard and Guacamole stacks for maintenance or updates.
 - `make enable-physical-screen` enables GNOME physical monitor sharing over RDP.
 - `make check-remote` checks the Guacamole-to-RDP path.
 - `make down` stops the default stack.

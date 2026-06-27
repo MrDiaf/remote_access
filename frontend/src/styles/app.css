@@ -34,6 +34,7 @@ body {
 
 button,
 input,
+select,
 textarea {
   font: inherit;
   letter-spacing: 0;
@@ -630,6 +631,7 @@ label {
 }
 
 input,
+select,
 textarea {
   width: 100%;
   color: var(--text);
@@ -644,6 +646,11 @@ input {
   padding: 0 12px;
 }
 
+select {
+  min-height: 42px;
+  padding: 0 38px 0 12px;
+}
+
 textarea {
   min-height: 130px;
   padding: 12px;
@@ -653,9 +660,52 @@ textarea {
 }
 
 input:focus,
+select:focus,
 textarea:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(49, 95, 145, 0.14);
+}
+
+.panelHeader.compact {
+  margin-bottom: 0;
+}
+
+.settingsGrid,
+.preferenceGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.settingsGrid,
+.preferenceGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.preferenceTile {
+  min-height: 92px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: center;
+  gap: 5px 10px;
+  padding: 14px;
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.preferenceTile svg {
+  grid-row: span 2;
+  color: var(--primary);
+}
+
+.preferenceTile span {
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.preferenceTile strong {
+  overflow-wrap: anywhere;
 }
 
 .saveButton {
@@ -785,6 +835,8 @@ textarea:focus {
   .linkGrid,
   .addressList,
   .statusGrid,
+  .settingsGrid,
+  .preferenceGrid,
   .checklist {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -820,6 +872,8 @@ textarea:focus {
   .linkGrid,
   .addressList,
   .statusGrid,
+  .settingsGrid,
+  .preferenceGrid,
   .checklist {
     grid-template-columns: 1fr;
   }
