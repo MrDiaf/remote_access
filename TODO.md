@@ -9,6 +9,7 @@ Remaining items are sorted by rough implementation difficulty.
 - The phone touchpad/keyboard path has been manually tested by the user and is accepted as minimally working for now.
 - The phone controls are still a little wonky, but this issue is dismissed for this session. Do not reopen phone polish unless the user explicitly asks.
 - The next new planning topic is remote audio output. Start with Guacamole/RDP audio redirection before considering any alternate audio path.
+- Development should also be containerized through a future `docker-compose.dev.yaml`. Future work should not require installing npm on the host.
 
 ## Completed This Session
 
@@ -29,6 +30,11 @@ Remaining items are sorted by rough implementation difficulty.
 
 - Test and harden the focused/fullscreen remote desktop mode. Confirm which shortcuts browsers still reserve locally and which ones Guacamole receives reliably.
 - Improve input capture for the embedded remote desktop. After the user clicks the remote desktop area, keyboard commands should go to the remote Ubuntu session instead of the local PC/browser whenever the browser allows it.
+- Add `docker-compose.dev.yaml` for local development without host npm:
+  - Include a Node/Vite frontend dev service with `./frontend` bind-mounted.
+  - Use a named volume for container-owned `node_modules` so host dependency installs are not needed.
+  - Expose Vite's dev server on a predictable LAN/VPN-safe port.
+  - Add Make wrappers such as `make dev`, `make dev-down`, and/or `make frontend-dev-shell`.
 - Plan and investigate remote audio output. Preferred path is Guacamole RDP audio redirection, not a custom audio streaming protocol:
   - Confirm Guacamole's RDP connection does not have `disable-audio` enabled.
   - Confirm the browser allows audio playback for the dashboard/Guacamole page and is not muted by autoplay or site settings.

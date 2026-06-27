@@ -22,6 +22,13 @@ Core architecture:
 - `make enable-physical-screen` configures GNOME Remote Desktop over RDP on TCP 3389 for the current logged-in GNOME user. Guacamole should connect to `host.docker.internal:3389`.
 - xrdp + XFCE is only the fallback/alternate path for a separate management desktop session. Do not steer the user back to xrdp unless they explicitly want a separate session.
 
+Development environment:
+
+- Development should be possible through Docker containers without requiring Node/npm on the host machine.
+- The frontend production image already builds inside a `node:22-alpine` Docker stage, so `make build`, `make refresh`, or `docker compose build frontend` should not need local npm.
+- Future development workflow should be based on a dedicated `docker-compose.dev.yaml`, not ad hoc host npm. That file should provide a Node/Vite frontend dev service with the frontend source bind-mounted, persistent container `node_modules`, and an easy Make wrapper such as `make dev` or `make frontend-dev-shell`.
+- Until that exists, do not ask the user to install npm locally just to work on this project; prefer Docker-based commands.
+
 Important principles:
 
 - This project DOES provide browser-based remote desktop access by integrating existing tools.

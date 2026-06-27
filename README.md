@@ -383,6 +383,12 @@ Other commands:
 - `make backup`
 - `make restore`
 
+## Development Without Host npm
+
+Frontend production builds already run inside Docker using the frontend Dockerfile's `node:22-alpine` build stage. You do not need Node/npm installed on the host for normal rebuilds; use `make build`, `make refresh`, or `docker compose build frontend`.
+
+A dedicated Docker-based dev workflow is still a TODO. Future development should add `docker-compose.dev.yaml` plus Make wrappers such as `make dev` or `make frontend-dev-shell`, instead of requiring host npm.
+
 ## Ports
 
 Browser/client connects to:
