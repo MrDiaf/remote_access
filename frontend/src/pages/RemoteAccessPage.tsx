@@ -1,5 +1,5 @@
 import { CheckSquare, ExternalLink, Keyboard, Maximize2, Minimize2, Monitor, MousePointer2, RefreshCw } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ApiError, api, type DashboardSettings, type RemoteDesktopStatus } from '../api/client';
 import { StatusBadge } from '../components/StatusBadge';
@@ -25,6 +25,9 @@ type TouchMouseMode = 'touchpad' | 'touchscreen';
 
 const GUACAMOLE_PREFERENCES_KEY = 'GUAC_PREFERENCES';
 const DASHBOARD_TOUCH_MOUSE_MODE_KEY = 'SCP_GUAC_TOUCH_MOUSE_MODE';
+const MOBILE_KEYBOARD_PADDING_CHAR = '\u200B';
+const MOBILE_KEYBOARD_PADDING = MOBILE_KEYBOARD_PADDING_CHAR.repeat(4);
+const GUACAMOLE_TEXT_PADDING = MOBILE_KEYBOARD_PADDING_CHAR.repeat(8);
 
 function containerTone(state: string) {
   return state === 'running' ? 'online' : state || 'unknown';
@@ -88,11 +91,14 @@ function initializeGuacamoleTouchPreferences(): TouchMouseMode {
 
 export function RemoteAccessPage({ settings }: RemoteAccessPageProps) {
   const desktopStageRef = useRef<HTMLElement | null>(null);
+  const remoteFrameWrapRef = useRef<HTMLDivElement | null>(null);
   const remoteFrameRef = useRef<HTMLIFrameElement | null>(null);
+  const mobileKeyboardRef = useRef<HTMLTextAreaElement | null>(null);
   const preferenceReloadTimerRef = useRef<number | null>(null);
   const [status, setStatus] = useState<RemoteDesktopStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [keyboardNotice, setKeyboardNotice] = useState<string | null>(null);
+  const [mobileKeyboardActive, setMobileKeyboardActive] = useState(false);
   const [busy, setBusy] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [touchMouseMode, setTouchMouseMode] = useState<TouchMouseMode>(initializeGuacamoleTouchPreferences);
@@ -132,14 +138,62 @@ export function RemoteAccessPage({ settings }: RemoteAccessPageProps) {
     }
   }
 
-  function focusGuacamoleTextInput() {
+  function getGuacamoleTextInput() {
     const frameDocument = getGuacamoleFrameDocument();
-    const target = frameDocument?.querySelector<HTMLTextAreaElement>('.text-input textarea.target, textarea.target');
+    return frameDocument?.querySelector<HTMLTextAreaElement>('.text-input textarea.target, textarea.target') || null;
+  }
+
+  function dispatchGuacamoleInput(target: HTMLTextAreaElement) {
+    target.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+  }
+
+  function sendGuacamoleText(text: string) {
+    const target = getGuacamoleTextInput();
     if (!target) return false;
 
-    target.focus({ preventScroll: false });
-    target.click();
+    target.value = `${GUACAMOLE_TEXT_PADDING}${text}`;
+    target.setSelectionRange(target.value.length, target.value.length);
+    dispatchGuacamoleInput(target);
     return true;
+  }
+
+  function sendGuacamoleBackspace(count: number) {
+    const target = getGuacamoleTextInput();
+    if (!target) return false;
+
+    for (let index = 0; index < count; index += 1) {
+      target.value = MOBILE_KEYBOARD_PADDING_CHAR.repeat(7);
+      target.setSelectionRange(3, 3);
+      dispatchGuacamoleInput(target);
+    }
+
+    return true;
+  }
+
+  function resetMobileKeyboardSink(target = mobileKeyboardRef.current) {
+    if (!target) return;
+    target.value = MOBILE_KEYBOARD_PADDING;
+    target.setSelectionRange(MOBILE_KEYBOARD_PADDING.length, MOBILE_KEYBOARD_PADDING.length);
+  }
+
+  function handleMobileKeyboardInput(event: FormEvent<HTMLTextAreaElement>) {
+    const target = event.currentTarget;
+    const value = target.value;
+    const backspaceCount = Math.max(0, MOBILE_KEYBOARD_PADDING.length - value.length);
+    const typedText = value.split(MOBILE_KEYBOARD_PADDING_CHAR).join('');
+    const sent =
+      backspaceCount > 0
+        ? sendGuacamoleBackspace(backspaceCount)
+        : typedText
+          ? sendGuacamoleText(typedText)
+          : true;
+
+    resetMobileKeyboardSink(target);
+
+    if (!sent) {
+      reloadGuacamoleFrameWithPreferences(touchMouseMode, true);
+      setKeyboardNotice('Keyboard input is being enabled. Tap Keyboard again after the remote desktop reloads.');
+    }
   }
 
   function reloadGuacamoleFrameWithPreferences(mode: TouchMouseMode, useTextInput: boolean) {
@@ -208,17 +262,44 @@ export function RemoteAccessPage({ settings }: RemoteAccessPageProps) {
 
   function openPhoneKeyboard() {
     setKeyboardNotice(null);
+    setMobileKeyboardActive(true);
     writeGuacamolePreferences(touchMouseMode, true);
+    remoteFrameWrapRef.current?.scrollIntoView({ block: 'start' });
+    resetMobileKeyboardSink();
 
-    if (focusGuacamoleTextInput()) return;
+    const target = mobileKeyboardRef.current;
+    target?.focus({ preventScroll: true });
+    target?.click();
 
-    reloadGuacamoleFrameWithPreferences(touchMouseMode, true);
-    setKeyboardNotice('Keyboard input is being enabled. Tap Keyboard again after the remote desktop reloads.');
+    if (!getGuacamoleTextInput()) {
+      reloadGuacamoleFrameWithPreferences(touchMouseMode, true);
+      setKeyboardNotice('Keyboard input is being enabled. Tap Keyboard again after the remote desktop reloads.');
+    }
   }
 
   useEffect(() => {
     void loadStatus();
   }, []);
+
+  useEffect(() => {
+    if (!touchInput) return undefined;
+
+    const updateRemoteViewportHeight = () => {
+      const height = window.visualViewport?.height || window.innerHeight;
+      document.documentElement.style.setProperty('--remote-viewport-height', `${Math.round(height)}px`);
+    };
+
+    updateRemoteViewportHeight();
+    window.visualViewport?.addEventListener('resize', updateRemoteViewportHeight);
+    window.visualViewport?.addEventListener('scroll', updateRemoteViewportHeight);
+    window.addEventListener('resize', updateRemoteViewportHeight);
+
+    return () => {
+      window.visualViewport?.removeEventListener('resize', updateRemoteViewportHeight);
+      window.visualViewport?.removeEventListener('scroll', updateRemoteViewportHeight);
+      window.removeEventListener('resize', updateRemoteViewportHeight);
+    };
+  }, [touchInput]);
 
   useEffect(() => {
     return () => {
@@ -263,7 +344,7 @@ export function RemoteAccessPage({ settings }: RemoteAccessPageProps) {
   }, [remoteInput.capture_release_shortcut]);
 
   return (
-    <div className="page remotePage">
+    <div className={mobileKeyboardActive ? 'page remotePage mobileKeyboardOpen' : 'page remotePage'}>
       <section className="desktopStage" ref={desktopStageRef}>
         <div className="desktopStageHeader">
           <div>
@@ -277,32 +358,6 @@ export function RemoteAccessPage({ settings }: RemoteAccessPageProps) {
               <RefreshCw size={16} aria-hidden="true" />
               Refresh
             </button>
-            {touchInput ? (
-              <div className="remoteTouchActions" aria-label="Phone remote controls">
-                <button className="button secondary" type="button" onClick={openPhoneKeyboard}>
-                  <Keyboard size={16} aria-hidden="true" />
-                  Keyboard
-                </button>
-                <div className="segmentedControl" role="group" aria-label="Phone mouse mode">
-                  <button
-                    className={touchMouseMode === 'touchpad' ? 'segmentedButton active' : 'segmentedButton'}
-                    type="button"
-                    aria-pressed={touchMouseMode === 'touchpad'}
-                    onClick={() => chooseTouchMouseMode('touchpad')}
-                  >
-                    Touchpad
-                  </button>
-                  <button
-                    className={touchMouseMode === 'touchscreen' ? 'segmentedButton active' : 'segmentedButton'}
-                    type="button"
-                    aria-pressed={touchMouseMode === 'touchscreen'}
-                    onClick={() => chooseTouchMouseMode('touchscreen')}
-                  >
-                    Touchscreen
-                  </button>
-                </div>
-              </div>
-            ) : null}
             <button className="button secondary" type="button" onClick={toggleFocusMode}>
               {focusMode ? <Minimize2 size={16} aria-hidden="true" /> : <Maximize2 size={16} aria-hidden="true" />}
               {focusMode ? 'Exit Focus' : 'Focus'}
@@ -317,7 +372,50 @@ export function RemoteAccessPage({ settings }: RemoteAccessPageProps) {
         {error ? <div className="notice error">{error}</div> : null}
         {keyboardNotice ? <div className="notice compact">{keyboardNotice}</div> : null}
 
-        <div className="remoteFrameWrap" onMouseEnter={focusRemoteFrame}>
+        <div className="remoteFrameWrap" ref={remoteFrameWrapRef} onMouseEnter={focusRemoteFrame}>
+          {touchInput ? (
+            <div className="remoteFrameToolbar" aria-label="Phone remote controls">
+              <button className="button secondary" type="button" onClick={openPhoneKeyboard}>
+                <Keyboard size={16} aria-hidden="true" />
+                Keyboard
+              </button>
+              <div className="segmentedControl" role="group" aria-label="Phone mouse mode">
+                <button
+                  className={touchMouseMode === 'touchpad' ? 'segmentedButton active' : 'segmentedButton'}
+                  type="button"
+                  aria-pressed={touchMouseMode === 'touchpad'}
+                  onClick={() => chooseTouchMouseMode('touchpad')}
+                >
+                  Touchpad
+                </button>
+                <button
+                  className={touchMouseMode === 'touchscreen' ? 'segmentedButton active' : 'segmentedButton'}
+                  type="button"
+                  aria-pressed={touchMouseMode === 'touchscreen'}
+                  onClick={() => chooseTouchMouseMode('touchscreen')}
+                >
+                  Touchscreen
+                </button>
+              </div>
+            </div>
+          ) : null}
+          {touchInput ? (
+            <textarea
+              ref={mobileKeyboardRef}
+              className={mobileKeyboardActive ? 'remoteKeyboardSink active' : 'remoteKeyboardSink'}
+              aria-label="Remote keyboard input"
+              autoCapitalize="none"
+              autoCorrect="off"
+              rows={1}
+              spellCheck={false}
+              onFocus={() => {
+                setMobileKeyboardActive(true);
+                resetMobileKeyboardSink();
+              }}
+              onBlur={() => setMobileKeyboardActive(false)}
+              onInput={handleMobileKeyboardInput}
+            />
+          ) : null}
           <iframe
             key={guacamoleFrameKey}
             ref={remoteFrameRef}

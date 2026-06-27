@@ -420,12 +420,6 @@ tr:last-child td {
   gap: 10px;
 }
 
-.remoteTouchActions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .segmentedControl {
   min-height: 42px;
   display: flex;
@@ -460,7 +454,9 @@ tr:last-child td {
 }
 
 .remoteFrameWrap {
+  position: relative;
   width: 100%;
+  height: min(76vh, 820px);
   min-height: 620px;
   overflow: hidden;
   background: #11191d;
@@ -472,13 +468,53 @@ tr:last-child td {
 .remoteFrame {
   display: block;
   width: 100%;
-  height: min(76vh, 820px);
-  min-height: 620px;
+  height: 100%;
+  min-height: 0;
   border: 0;
   background: #11191d;
 }
 
+.remoteFrameToolbar {
+  position: absolute;
+  top: max(10px, env(safe-area-inset-top));
+  right: max(10px, env(safe-area-inset-right));
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  background: rgba(248, 250, 251, 0.94);
+  border: 1px solid rgba(23, 32, 38, 0.18);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+}
+
+.remoteKeyboardSink {
+  position: absolute;
+  left: max(12px, env(safe-area-inset-left));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 4;
+  width: 1px;
+  height: 1px;
+  min-height: 1px;
+  padding: 0;
+  opacity: 0.01;
+  resize: none;
+}
+
+.remoteKeyboardSink.active {
+  width: min(320px, calc(100% - 24px));
+  height: 42px;
+  min-height: 42px;
+  padding: 9px 12px;
+  opacity: 0.96;
+  background: #fff;
+  border-color: var(--primary);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
 .desktopStage:fullscreen .remoteFrameWrap {
+  height: calc(100vh - 128px);
   min-height: calc(100vh - 128px);
 }
 
@@ -912,19 +948,6 @@ textarea:focus {
     width: 100%;
   }
 
-  .remoteTouchActions {
-    width: 100%;
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-
-  .segmentedControl {
-    width: 100%;
-  }
-
-  .segmentedButton {
-    flex: 1;
-  }
 }
 
 @media (max-width: 640px) {
@@ -966,6 +989,41 @@ textarea:focus {
 
   .remoteFrameWrap,
   .remoteFrame {
-    min-height: 520px;
+    min-height: 0;
+  }
+
+  .remoteFrameWrap {
+    height: max(360px, calc(var(--remote-viewport-height, 100vh) - 220px));
+  }
+
+  .mobileKeyboardOpen .remoteFrameWrap {
+    height: max(260px, calc(var(--remote-viewport-height, 100vh) - 104px));
+  }
+
+  .desktopStage:fullscreen .remoteFrameWrap {
+    height: calc(var(--remote-viewport-height, 100vh) - 24px);
+    min-height: 0;
+  }
+
+  .desktopStage:fullscreen .remoteFrame {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .remoteFrameToolbar {
+    left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  }
+
+  .remoteFrameToolbar .button,
+  .remoteFrameToolbar .segmentedControl {
+    width: 100%;
+  }
+
+  .segmentedButton {
+    flex: 1;
+    padding: 0 8px;
   }
 }

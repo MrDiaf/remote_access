@@ -203,7 +203,7 @@ inputMethod: text
 
 This makes Guacamole use Touchpad mode by default, where dragging moves the remote pointer instead of clicking the exact point touched on the phone screen. Use the Touchpad/Touchscreen button on the Remote Desktop page to switch modes; the embedded Guacamole frame reloads after the change.
 
-Mobile browsers need a local input field before they will show the phone keyboard. After placing the remote cursor in a text field, tap the dashboard's Keyboard button on the Remote Desktop page to focus Guacamole's native text input field and open the phone keyboard.
+Mobile browsers need a local input field before they will show the phone keyboard. After placing the remote cursor in a text field, tap the Keyboard button overlaid on the remote frame. The dashboard opens a local phone-keyboard input and forwards typed text/backspace into Guacamole's native text input field.
 
 If the dashboard still shows old code after `git pull`, run:
 

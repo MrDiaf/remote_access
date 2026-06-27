@@ -14,14 +14,15 @@ Remaining items are sorted by rough implementation difficulty.
 - Added a best-effort Remote Desktop Focus mode using browser fullscreen, iframe focus, and browser keyboard lock when available.
 - Set touch devices to Guacamole's native relative/touchpad mouse mode by default. This makes one-finger drag move the remote pointer instead of clicking the exact touched screen position.
 - Added a touch-device toggle on Remote Desktop for switching Guacamole between Touchpad and Touchscreen mouse modes. The toggle reloads the embedded Guacamole frame so the saved browser preference is picked up.
-- Added a phone Keyboard button that focuses Guacamole's native text input textarea, which gives mobile browsers a real input target for opening the phone keyboard.
+- Moved phone controls into an overlay on the remote frame so Keyboard and Touchpad/Touchscreen remain reachable while focused.
+- Added a dashboard-owned phone keyboard input that opens the mobile keyboard reliably and forwards typed text/backspace into Guacamole's native text input textarea.
 - Changed Touchpad/Touchscreen switching to use an explicit two-choice control and reload through a temporary blank iframe so Guacamole's old unload handler does not overwrite the newly selected preference.
 
 ## Medium
 
 - Test and harden the focused/fullscreen remote desktop mode. Confirm which shortcuts browsers still reserve locally and which ones Guacamole receives reliably.
 - Improve input capture for the embedded remote desktop. After the user clicks the remote desktop area, keyboard commands should go to the remote Ubuntu session instead of the local PC/browser whenever the browser allows it.
-- Test Guacamole native Touchpad mode on a real phone. Confirm one-finger drag moves the remote pointer, tap clicks, two-finger scroll works, the Touchscreen choice disables touchpad behavior, and the Keyboard button brings up the phone keyboard when needed.
+- Test Guacamole native Touchpad mode on a real phone. Confirm one-finger drag moves the remote pointer, tap clicks, two-finger scroll works, the Touchscreen choice disables touchpad behavior, and the overlay Keyboard button brings up the phone keyboard without pushing the remote view out of reach.
 - If the phone preference does not stick on the server, verify the embedded Guacamole URL is same-origin (`/guacamole/`) so the dashboard can set Guacamole's `GUAC_PREFERENCES` localStorage value before the iframe loads.
 
 ## Harder
