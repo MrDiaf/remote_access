@@ -420,6 +420,39 @@ tr:last-child td {
   gap: 10px;
 }
 
+.remoteTouchActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.segmentedControl {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.segmentedButton {
+  min-height: 34px;
+  padding: 0 12px;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.segmentedButton.active {
+  color: #fff;
+  background: var(--primary);
+}
+
 .button.large {
   min-height: 48px;
   padding: 0 18px;
@@ -739,6 +772,10 @@ textarea:focus {
   background: var(--surface);
 }
 
+.notice.compact {
+  padding: 10px 12px;
+}
+
 .notice.error {
   color: #7e1a12;
   border-color: #fac1ba;
@@ -873,6 +910,20 @@ textarea:focus {
 
   .desktopStageActions .button {
     width: 100%;
+  }
+
+  .remoteTouchActions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .segmentedControl {
+    width: 100%;
+  }
+
+  .segmentedButton {
+    flex: 1;
   }
 }
 

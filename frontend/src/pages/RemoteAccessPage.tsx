@@ -89,14 +89,18 @@ function initializeGuacamoleTouchPreferences(): TouchMouseMode {
 export function RemoteAccessPage({ settings }: RemoteAccessPageProps) {
   const desktopStageRef = useRef<HTMLElement | null>(null);
   const remoteFrameRef = useRef<HTMLIFrameElement | null>(null);
+  const preferenceReloadTimerRef = useRef<number | null>(null);
   const [status, setStatus] = useState<RemoteDesktopStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [keyboardNotice, setKeyboardNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [touchMouseMode, setTouchMouseMode] = useState<TouchMouseMode>(initializeGuacamoleTouchPreferences);
   const [guacamoleFrameKey, setGuacamoleFrameKey] = useState(0);
+  const [guacamoleFrameBlank, setGuacamoleFrameBlank] = useState(false);
 
   const guacamoleUrl = status?.guacamole_url || settings?.links.guacamole?.url || '/guacamole/';
+  const guacamoleFrameSrc = guacamoleFrameBlank ? 'about:blank' : guacamoleUrl;
   const touchInput = hasTouchInput();
   const remoteInput = settings?.remote_input || defaultRemoteInput;
   const rdpTarget = useMemo(
@@ -118,6 +122,38 @@ export function RemoteAccessPage({ settings }: RemoteAccessPageProps) {
 
   function focusRemoteFrame() {
     remoteFrameRef.current?.focus();
+  }
+
+  function getGuacamoleFrameDocument() {
+    try {
+      return remoteFrameRef.current?.contentDocument || remoteFrameRef.current?.contentWindow?.document || null;
+    } catch {
+      return null;
+    }
+  }
+
+  function focusGuacamoleTextInput() {
+    const frameDocument = getGuacamoleFrameDocument();
+    const target = frameDocument?.querySelector<HTMLTextAreaElement>('.text-input textarea.target, textarea.target');
+    if (!target) return false;
+
+    target.focus({ preventScroll: false });
+    target.click();
+    return true;
+  }
+
+  function reloadGuacamoleFrameWithPreferences(mode: TouchMouseMode, useTextInput: boolean) {
+    if (preferenceReloadTimerRef.current) {
+      window.clearTimeout(preferenceReloadTimerRef.current);
+    }
+
+    setGuacamoleFrameBlank(true);
+    preferenceReloadTimerRef.current = window.setTimeout(() => {
+      writeGuacamolePreferences(mode, useTextInput);
+      setGuacamoleFrameKey((current) => current + 1);
+      setGuacamoleFrameBlank(false);
+      preferenceReloadTimerRef.current = null;
+    }, 120);
   }
 
   async function lockKeyboardWhenAvailable() {
@@ -164,15 +200,32 @@ export function RemoteAccessPage({ settings }: RemoteAccessPageProps) {
     }
   }
 
-  function toggleTouchMouseMode() {
-    const nextMode = touchMouseMode === 'touchpad' ? 'touchscreen' : 'touchpad';
-    writeGuacamolePreferences(nextMode, touchInput);
-    setTouchMouseMode(nextMode);
-    setGuacamoleFrameKey((current) => current + 1);
+  function chooseTouchMouseMode(mode: TouchMouseMode) {
+    setKeyboardNotice(null);
+    setTouchMouseMode(mode);
+    reloadGuacamoleFrameWithPreferences(mode, touchInput);
+  }
+
+  function openPhoneKeyboard() {
+    setKeyboardNotice(null);
+    writeGuacamolePreferences(touchMouseMode, true);
+
+    if (focusGuacamoleTextInput()) return;
+
+    reloadGuacamoleFrameWithPreferences(touchMouseMode, true);
+    setKeyboardNotice('Keyboard input is being enabled. Tap Keyboard again after the remote desktop reloads.');
   }
 
   useEffect(() => {
     void loadStatus();
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (preferenceReloadTimerRef.current) {
+        window.clearTimeout(preferenceReloadTimerRef.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -225,14 +278,30 @@ export function RemoteAccessPage({ settings }: RemoteAccessPageProps) {
               Refresh
             </button>
             {touchInput ? (
-              <button
-                className={touchMouseMode === 'touchpad' ? 'button primary' : 'button secondary'}
-                type="button"
-                onClick={toggleTouchMouseMode}
-              >
-                <MousePointer2 size={16} aria-hidden="true" />
-                {touchMouseMode === 'touchpad' ? 'Touchpad' : 'Touchscreen'}
-              </button>
+              <div className="remoteTouchActions" aria-label="Phone remote controls">
+                <button className="button secondary" type="button" onClick={openPhoneKeyboard}>
+                  <Keyboard size={16} aria-hidden="true" />
+                  Keyboard
+                </button>
+                <div className="segmentedControl" role="group" aria-label="Phone mouse mode">
+                  <button
+                    className={touchMouseMode === 'touchpad' ? 'segmentedButton active' : 'segmentedButton'}
+                    type="button"
+                    aria-pressed={touchMouseMode === 'touchpad'}
+                    onClick={() => chooseTouchMouseMode('touchpad')}
+                  >
+                    Touchpad
+                  </button>
+                  <button
+                    className={touchMouseMode === 'touchscreen' ? 'segmentedButton active' : 'segmentedButton'}
+                    type="button"
+                    aria-pressed={touchMouseMode === 'touchscreen'}
+                    onClick={() => chooseTouchMouseMode('touchscreen')}
+                  >
+                    Touchscreen
+                  </button>
+                </div>
+              </div>
             ) : null}
             <button className="button secondary" type="button" onClick={toggleFocusMode}>
               {focusMode ? <Minimize2 size={16} aria-hidden="true" /> : <Maximize2 size={16} aria-hidden="true" />}
@@ -246,13 +315,14 @@ export function RemoteAccessPage({ settings }: RemoteAccessPageProps) {
         </div>
 
         {error ? <div className="notice error">{error}</div> : null}
+        {keyboardNotice ? <div className="notice compact">{keyboardNotice}</div> : null}
 
         <div className="remoteFrameWrap" onMouseEnter={focusRemoteFrame}>
           <iframe
             key={guacamoleFrameKey}
             ref={remoteFrameRef}
             className="remoteFrame"
-            src={guacamoleUrl}
+            src={guacamoleFrameSrc}
             title="Guacamole Remote Desktop"
             allow="fullscreen; clipboard-read; clipboard-write"
           />
