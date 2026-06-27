@@ -4,6 +4,12 @@ These are handoff notes only. Do not implement until the user explicitly starts 
 
 Remaining items are sorted by rough implementation difficulty.
 
+## End-of-Day State
+
+- The phone touchpad/keyboard path has been manually tested by the user and is accepted as minimally working for now.
+- The phone controls are still a little wonky, but this issue is dismissed for this session. Do not reopen phone polish unless the user explicitly asks.
+- The next new planning topic is remote audio output. Start with Guacamole/RDP audio redirection before considering any alternate audio path.
+
 ## Completed This Session
 
 - Added remote keyboard layout settings in the app. The user can choose the local keyboard layout and the remote Guacamole/RDP keyboard layout.
@@ -17,19 +23,29 @@ Remaining items are sorted by rough implementation difficulty.
 - Moved phone controls into an overlay on the remote frame so Keyboard and Touchpad/Touchscreen remain reachable while focused.
 - Added a dashboard-owned phone keyboard input that opens the mobile keyboard reliably and forwards typed text/backspace into Guacamole's native text input textarea.
 - Changed Touchpad/Touchscreen switching to use an explicit two-choice control and reload through a temporary blank iframe so Guacamole's old unload handler does not overwrite the newly selected preference.
+- User accepted the phone touchpad/keyboard behavior as minimally working, with polish deferred.
 
 ## Medium
 
 - Test and harden the focused/fullscreen remote desktop mode. Confirm which shortcuts browsers still reserve locally and which ones Guacamole receives reliably.
 - Improve input capture for the embedded remote desktop. After the user clicks the remote desktop area, keyboard commands should go to the remote Ubuntu session instead of the local PC/browser whenever the browser allows it.
-- Test Guacamole native Touchpad mode on a real phone. Confirm one-finger drag moves the remote pointer, tap clicks, two-finger scroll works, the Touchscreen choice disables touchpad behavior, and the overlay Keyboard button brings up the phone keyboard without pushing the remote view out of reach.
-- If the phone preference does not stick on the server, verify the embedded Guacamole URL is same-origin (`/guacamole/`) so the dashboard can set Guacamole's `GUAC_PREFERENCES` localStorage value before the iframe loads.
+- Plan and investigate remote audio output. Preferred path is Guacamole RDP audio redirection, not a custom audio streaming protocol:
+  - Confirm Guacamole's RDP connection does not have `disable-audio` enabled.
+  - Confirm the browser allows audio playback for the dashboard/Guacamole page and is not muted by autoplay or site settings.
+  - Confirm `guacd` logs do not show missing FreeRDP audio/device-redirection channel support.
+  - Confirm GNOME Remote Desktop on the host actually exposes speaker audio over RDP for the physical-screen session.
+  - If the built-in RDP audio path works, add a small dashboard status/check note and optional setting for remote audio output.
 
 ## Harder
 
 - Implement stronger/full input capture for the remote desktop, including the configured exit/release shortcut. Investigate browser support and limits for Pointer Lock, Keyboard Lock, fullscreen, focus handling, and reserved OS/browser shortcuts.
+- If GNOME physical-screen RDP cannot provide audio output through Guacamole, evaluate alternatives without changing the core architecture: xrdp/PipeWire or PulseAudio audio for a separate management session, another existing remote desktop stack with browser audio support, or an explicitly approved audio bridge as a last-resort experiment.
 - Investigate Guacamole turning black or becoming unable to capture the screen when fullscreen is enabled inside the Ubuntu environment. Start by confirming whether the black screen is triggered by Guacamole, GNOME Remote Desktop, RDP display resizing, fullscreen mode inside Ubuntu, or the browser fullscreen/focus state.
 - Investigate remote screen freezing when the user switches windows inside the Ubuntu desktop session. Start by confirming whether the freeze happens in Guacamole only, in GNOME Remote Desktop logs, or on the physical monitor too.
+
+## Deferred Polish
+
+- Phone remote control is usable enough for now but still imperfect. If the user reopens it later, check the overlay Keyboard workflow, visible viewport resizing while the phone keyboard is open, and whether the embedded Guacamole URL is same-origin (`/guacamole/`) so dashboard-managed `GUAC_PREFERENCES` still applies.
 
 ## Guardrails
 

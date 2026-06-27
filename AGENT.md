@@ -48,12 +48,14 @@ Remote desktop operational notes:
 - Remote keyboard settings are stored in dashboard settings and applied to Guacamole RDP connections through the Guacamole database `server-layout` parameter. Existing Guacamole sessions must reconnect before keyboard changes take effect.
 - Remote Desktop has a best-effort Focus mode that requests browser fullscreen, focuses the Guacamole iframe, and asks for browser keyboard lock where supported. It cannot override every browser/OS-reserved shortcut, so full input capture remains a hardening task.
 - On touch devices, the dashboard configures Guacamole's own browser preferences before the embedded iframe loads: relative/touchpad mouse mode by default and text input mode enabled. This is intentionally Guacamole-native mobile behavior, not a custom pointer overlay. The Remote Desktop page overlays touch-only Keyboard and Touchpad/Touchscreen controls on the remote frame. The Keyboard control focuses a dashboard-owned textarea so the phone keyboard opens reliably, then forwards typed text/backspace into Guacamole's native text input textarea.
+- The user manually tested the phone touchpad/keyboard flow and accepted it as minimally working for now. It is still a little wonky, but do not keep polishing it unless the user explicitly reopens that issue.
+- Remote audio output is only planned, not implemented. First investigate Guacamole RDP audio redirection and whether GNOME Remote Desktop physical-screen RDP exposes speaker audio. Do not start with a custom audio streaming protocol.
 - The user's real stack often runs on another Ubuntu server PC after `git pull`; local checks in this workspace may not reflect the actual host state unless the user says they are running here.
 
 Next session TODO:
 
 - See `TODO.md` before starting new feature work.
-- The next UX focus is remote desktop reliability and control: investigate freezes when switching windows, improve keyboard/input capture so commands go to the remote desktop after focus, and verify Guacamole's native touchpad mode on a real phone.
+- The next UX focus is remote desktop reliability and control: investigate freezes when switching windows, improve keyboard/input capture so commands go to the remote desktop after focus, and plan remote audio output through Guacamole/RDP first.
 - These are TODOs only as of this handoff; do not assume they have been implemented.
 
 Current config files:
