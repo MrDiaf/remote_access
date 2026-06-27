@@ -8,6 +8,7 @@ Items are sorted by rough implementation difficulty.
 
 - Add remote keyboard layout settings in the app. The user should be able to choose what keyboard layout they are using locally and/or what layout the remote Ubuntu session expects, because Guacamole input currently behaves like the wrong keyboard layout.
 - Add a visible setting for the remote desktop focus/exit behavior. The app should let the user choose the key or gesture that releases input capture before stronger capture behavior is enabled.
+- Add a `make shutdown` or `make maintenance-stop` command that gracefully stops everything before service updates. It should stop the default stack and the Guacamole remote desktop stack in a predictable order, with clear terminal output about what was stopped.
 
 ## Medium
 
