@@ -9,6 +9,13 @@ export type RemoteInputSettings = {
   capture_release_shortcut: string;
 };
 
+export type RemoteInputApplyResult = {
+  success: boolean;
+  keyboard_layout: string;
+  updated_connections: number;
+  message: string;
+};
+
 export type DashboardSettings = {
   server_name: string;
   links: Record<string, LinkConfig>;
@@ -139,6 +146,10 @@ export const api = {
     }),
   services: () => request<ServiceStatus[]>('/api/services'),
   remoteStatus: () => request<RemoteDesktopStatus>('/api/remote/status'),
+  applyRemoteInput: () =>
+    request<RemoteInputApplyResult>('/api/remote/input/apply', {
+      method: 'POST'
+    }),
   actions: () => request<ActionSummary[]>('/api/actions'),
   runAction: (id: string, confirmed: boolean) =>
     request<ActionRunResult>(`/api/actions/${encodeURIComponent(id)}/run`, {

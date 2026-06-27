@@ -45,6 +45,8 @@ Remote desktop operational notes:
 - For the GNOME physical-screen path, inactive `xrdp` is expected. `make check-remote` should show GNOME Remote Desktop enabled, `host.docker.internal:3389` reachable from `guacd`, and host listening on TCP 3389.
 - Guacamole admin login is usually `guacadmin` / `guacadmin` until changed. The Guacamole database password in `.env` is not a user login. The RDP connection username/password are the credentials entered during `make enable-physical-screen`, not necessarily the Ubuntu account password.
 - Correct Guacamole connection fields for physical GNOME: protocol `RDP`; GUACD hostname `guacd`; GUACD port `4822`; network hostname `host.docker.internal`; network port `3389`; domain blank; ignore server certificate checked; Remote Desktop Gateway blank. If security negotiation drops, try security mode `TLS`.
+- Remote keyboard settings are stored in dashboard settings and applied to Guacamole RDP connections through the Guacamole database `server-layout` parameter. Existing Guacamole sessions must reconnect before keyboard changes take effect.
+- Remote Desktop has a best-effort Focus mode that requests browser fullscreen, focuses the Guacamole iframe, and asks for browser keyboard lock where supported. It cannot override every browser/OS-reserved shortcut, so full input capture remains a hardening task.
 - The user's real stack often runs on another Ubuntu server PC after `git pull`; local checks in this workspace may not reflect the actual host state unless the user says they are running here.
 
 Next session TODO:
@@ -64,8 +66,10 @@ If local `config/*.yml` files exist, they override the examples. Dashboard setti
 Important Make targets:
 
 - `make up`: main dashboard stack.
+- `make refresh`: rebuild/recreate dashboard containers, start the remote stack, and reapply saved remote keyboard settings to Guacamole.
 - `make remote-up`: Guacamole, guacd, and PostgreSQL.
 - `make guacamole-init`: generate Guacamole PostgreSQL schema.
+- `make apply-remote-input`: reapply the saved remote keyboard setting to Guacamole RDP connections.
 - `make remote-down`: stop the remote desktop stack.
 - `make check-remote`: check Guacamole and host RDP readiness.
 - `make install-host-remote-desktop`: install xrdp + XFCE on Ubuntu/Debian host.

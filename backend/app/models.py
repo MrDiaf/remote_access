@@ -16,6 +16,13 @@ class RemoteInputSettings(BaseModel):
     capture_release_shortcut: str = Field(default="escape", min_length=1, max_length=40)
 
 
+class RemoteInputApplyResult(BaseModel):
+    success: bool
+    keyboard_layout: str
+    updated_connections: int
+    message: str
+
+
 class DashboardSettings(BaseModel):
     server_name: str
     links: dict[str, LinkConfig]

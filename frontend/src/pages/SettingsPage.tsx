@@ -69,8 +69,18 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
           .map((name) => name.trim())
           .filter(Boolean)
       });
-      setSuccess('Saved');
       onSaved(next);
+      try {
+        const applied = await api.applyRemoteInput();
+        setSuccess(`Saved. ${applied.message}`);
+      } catch (applyErr) {
+        setSuccess('Saved');
+        setError(
+          applyErr instanceof ApiError
+            ? `Saved, but Guacamole was not updated: ${applyErr.message}`
+            : 'Saved, but Guacamole was not updated'
+        );
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Unable to save settings');
     } finally {

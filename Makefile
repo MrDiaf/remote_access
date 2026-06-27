@@ -3,19 +3,21 @@ GUACAMOLE_VERSION ?= 1.6.0
 BACKUP_DIR ?= backups
 BACKUP_FILE ?= $(BACKUP_DIR)/server-control-panel-$$(date +%Y%m%d-%H%M%S).tar.gz
 
-.PHONY: help up down shutdown maintenance-stop restart build logs ps remote-up remote-down guacamole-init check-remote install-host-remote-desktop enable-physical-screen backend-shell frontend-shell db-shell clean backup restore
+.PHONY: help up down shutdown maintenance-stop refresh restart build logs ps remote-up remote-down apply-remote-input guacamole-init check-remote install-host-remote-desktop enable-physical-screen backend-shell frontend-shell db-shell clean backup restore
 
 help:
 	@printf "server-control-panel commands\n\n"
 	@printf "  make up                Start dashboard, backend, proxy, and Portainer\n"
 	@printf "  make down              Stop the default stack\n"
 	@printf "  make shutdown          Gracefully stop dashboard and remote desktop stacks\n"
+	@printf "  make refresh           Rebuild/recreate dashboard and refresh remote helpers\n"
 	@printf "  make restart           Restart the default stack\n"
 	@printf "  make build             Rebuild images\n"
 	@printf "  make logs              Follow logs\n"
 	@printf "  make ps                Show container status\n"
 	@printf "  make remote-up         Start Guacamole, guacd, and PostgreSQL\n"
 	@printf "  make remote-down       Stop the Guacamole remote desktop stack\n"
+	@printf "  make apply-remote-input  Apply saved keyboard setting to Guacamole RDP connections\n"
 	@printf "  make guacamole-init    Generate Guacamole PostgreSQL init schema\n"
 	@printf "  make check-remote      Check Guacamole and host RDP readiness\n"
 	@printf "  make install-host-remote-desktop  Install xrdp + XFCE on Ubuntu/Debian host\n"
@@ -42,6 +44,14 @@ maintenance-stop:
 	$(COMPOSE) down
 	@printf "All project services are stopped for maintenance.\n"
 
+refresh: guacamole-init
+	@printf "Rebuilding and recreating dashboard containers...\n"
+	$(COMPOSE) up -d --build --force-recreate frontend backend reverse-proxy
+	@printf "Starting remote desktop containers...\n"
+	$(COMPOSE) --profile remote up -d guacamole-db guacd guacamole
+	$(MAKE) apply-remote-input
+	@printf "Refresh complete. Hard-refresh the browser if an old asset is still cached.\n"
+
 restart:
 	$(COMPOSE) restart
 
@@ -59,6 +69,9 @@ remote-up: guacamole-init
 
 remote-down:
 	$(COMPOSE) --profile remote stop guacamole guacd guacamole-db
+
+apply-remote-input:
+	COMPOSE_CMD="$(COMPOSE)" sh ./scripts/apply-guacamole-input-settings.sh
 
 guacamole-init:
 	mkdir -p data/guacamole

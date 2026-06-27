@@ -192,6 +192,14 @@ Parameters -> Input:
 Keyboard layout / server-layout: en-us-qwerty by default, or the Remote keyboard value from dashboard Settings
 ```
 
+Changing the dashboard's Remote keyboard setting now applies that value to Guacamole's RDP `server-layout` parameter. Reconnect any open Guacamole session before testing keys again.
+
+If the dashboard still shows old code after `git pull`, run:
+
+```sh
+make refresh
+```
+
 If Guacamole connects and immediately drops with a security-type error, try:
 
 ```text
@@ -345,11 +353,13 @@ Main commands:
 
 - `make up` starts the dashboard stack.
 - `make remote-up` starts Guacamole, guacd, and PostgreSQL.
+- `make refresh` rebuilds/recreates the dashboard, starts the remote stack, and reapplies the saved remote keyboard setting to Guacamole.
 - `make shutdown` gracefully stops the dashboard and Guacamole stacks for maintenance or updates.
 - `make enable-physical-screen` enables GNOME physical monitor sharing over RDP.
 - `make check-remote` checks the Guacamole-to-RDP path.
 - `make down` stops the default stack.
 - `make remote-down` stops the Guacamole stack.
+- `make apply-remote-input` reapplies the saved remote keyboard setting to Guacamole RDP connections.
 
 Other commands:
 

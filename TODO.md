@@ -7,12 +7,15 @@ Remaining items are sorted by rough implementation difficulty.
 ## Completed This Session
 
 - Added remote keyboard layout settings in the app. The user can choose the local keyboard layout and the remote Guacamole/RDP keyboard layout.
+- Applied the saved remote keyboard layout to Guacamole RDP connections through the Guacamole database `server-layout` parameter. Open Guacamole sessions still need reconnecting before keyboard changes take effect.
 - Added a visible remote input release setting. The app stores the preferred release shortcut before stronger capture behavior is enabled later.
 - Added a `make shutdown` / `make maintenance-stop` command that gracefully stops the default stack and Guacamole remote desktop stack in a predictable order.
+- Added `make refresh` to rebuild/recreate the dashboard, start remote desktop helpers, and reapply saved remote keyboard settings.
+- Added a best-effort Remote Desktop Focus mode using browser fullscreen, iframe focus, and browser keyboard lock when available.
 
 ## Medium
 
-- Consider a focused/fullscreen remote desktop mode so Guacamole has clear focus and the browser chrome/dashboard does not steal common shortcuts.
+- Test and harden the focused/fullscreen remote desktop mode. Confirm which shortcuts browsers still reserve locally and which ones Guacamole receives reliably.
 - Improve input capture for the embedded remote desktop. After the user clicks the remote desktop area, keyboard commands should go to the remote Ubuntu session instead of the local PC/browser whenever the browser allows it.
 - Start the phone-friendly remote control work with the simplest usable version:
   - Add a mobile remote-control mode for phones.

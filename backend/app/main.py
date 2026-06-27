@@ -11,6 +11,7 @@ from .config import (
     save_dashboard_settings,
 )
 from .docker_control import control_container, list_containers
+from .guacamole_input import apply_guacamole_input_settings
 from .models import (
     ActionRunRequest,
     ActionRunResult,
@@ -19,6 +20,7 @@ from .models import (
     DashboardSettingsUpdate,
     DockerContainerInfo,
     HealthResponse,
+    RemoteInputApplyResult,
     RemoteDesktopStatus,
     ServiceStatus,
     SystemInfo,
@@ -84,6 +86,12 @@ def services() -> list[ServiceStatus]:
 @app.get("/api/remote/status", response_model=RemoteDesktopStatus)
 def remote_status() -> RemoteDesktopStatus:
     return get_remote_desktop_status(load_remote_desktop_config())
+
+
+@app.post("/api/remote/input/apply", response_model=RemoteInputApplyResult)
+def apply_remote_input() -> RemoteInputApplyResult:
+    settings = load_dashboard_settings()
+    return apply_guacamole_input_settings(settings.remote_input)
 
 
 @app.get("/api/actions", response_model=list[ActionSummary])

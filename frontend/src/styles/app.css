@@ -387,6 +387,14 @@ tr:last-child td {
   gap: 14px;
 }
 
+.desktopStage:fullscreen {
+  min-height: 100vh;
+  align-content: start;
+  padding: 18px;
+  overflow: auto;
+  background: #eef1f4;
+}
+
 .desktopStageHeader {
   min-height: 74px;
   display: flex;
@@ -435,6 +443,15 @@ tr:last-child td {
   min-height: 620px;
   border: 0;
   background: #11191d;
+}
+
+.desktopStage:fullscreen .remoteFrameWrap {
+  min-height: calc(100vh - 128px);
+}
+
+.desktopStage:fullscreen .remoteFrame {
+  height: calc(100vh - 128px);
+  min-height: calc(100vh - 128px);
 }
 
 .remoteHero {

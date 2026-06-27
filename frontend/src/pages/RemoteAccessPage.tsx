@@ -1,5 +1,5 @@
-import { CheckSquare, ExternalLink, Keyboard, Monitor, MousePointer2, RefreshCw } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { CheckSquare, ExternalLink, Keyboard, Maximize2, Minimize2, Monitor, MousePointer2, RefreshCw } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { ApiError, api, type DashboardSettings, type RemoteDesktopStatus } from '../api/client';
 import { StatusBadge } from '../components/StatusBadge';
@@ -20,9 +20,12 @@ function containerTone(state: string) {
 }
 
 export function RemoteAccessPage({ settings }: RemoteAccessPageProps) {
+  const desktopStageRef = useRef<HTMLElement | null>(null);
+  const remoteFrameRef = useRef<HTMLIFrameElement | null>(null);
   const [status, setStatus] = useState<RemoteDesktopStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
 
   const guacamoleUrl = status?.guacamole_url || settings?.links.guacamole?.url || '/guacamole/';
   const remoteInput = settings?.remote_input || defaultRemoteInput;
@@ -43,13 +46,95 @@ export function RemoteAccessPage({ settings }: RemoteAccessPageProps) {
     }
   }
 
+  function focusRemoteFrame() {
+    remoteFrameRef.current?.focus();
+  }
+
+  async function lockKeyboardWhenAvailable() {
+    const keyboard = (navigator as Navigator & { keyboard?: { lock?: () => Promise<void> } }).keyboard;
+    if (!keyboard?.lock) return;
+    try {
+      await keyboard.lock();
+    } catch {
+      // Keyboard Lock is optional and browser-dependent.
+    }
+  }
+
+  function unlockKeyboardWhenAvailable() {
+    const keyboard = (navigator as Navigator & { keyboard?: { unlock?: () => void } }).keyboard;
+    keyboard?.unlock?.();
+  }
+
+  async function enterFocusMode() {
+    const stage = desktopStageRef.current;
+    if (stage?.requestFullscreen && !document.fullscreenElement) {
+      try {
+        await stage.requestFullscreen();
+      } catch {
+        // Focus is still useful when fullscreen is denied.
+      }
+    }
+    await lockKeyboardWhenAvailable();
+    focusRemoteFrame();
+  }
+
+  async function releaseFocusMode() {
+    unlockKeyboardWhenAvailable();
+    remoteFrameRef.current?.blur();
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+    }
+  }
+
+  function toggleFocusMode() {
+    if (focusMode) {
+      void releaseFocusMode();
+    } else {
+      void enterFocusMode();
+    }
+  }
+
   useEffect(() => {
     void loadStatus();
   }, []);
 
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const active = document.fullscreenElement === desktopStageRef.current;
+      setFocusMode(active);
+      if (active) {
+        void lockKeyboardWhenAvailable();
+        focusRemoteFrame();
+      } else {
+        unlockKeyboardWhenAvailable();
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const shortcut = remoteInput.capture_release_shortcut;
+      const shouldRelease =
+        (shortcut === 'escape' && event.key === 'Escape') ||
+        (shortcut === 'ctrl-alt' && event.ctrlKey && event.altKey) ||
+        (shortcut === 'ctrl-shift' && event.ctrlKey && event.shiftKey);
+
+      if (shouldRelease) {
+        event.preventDefault();
+        void releaseFocusMode();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [remoteInput.capture_release_shortcut]);
+
   return (
     <div className="page remotePage">
-      <section className="desktopStage">
+      <section className="desktopStage" ref={desktopStageRef}>
         <div className="desktopStageHeader">
           <div>
             <h1>Remote Desktop</h1>
@@ -62,6 +147,10 @@ export function RemoteAccessPage({ settings }: RemoteAccessPageProps) {
               <RefreshCw size={16} aria-hidden="true" />
               Refresh
             </button>
+            <button className="button secondary" type="button" onClick={toggleFocusMode}>
+              {focusMode ? <Minimize2 size={16} aria-hidden="true" /> : <Maximize2 size={16} aria-hidden="true" />}
+              {focusMode ? 'Exit Focus' : 'Focus'}
+            </button>
             <a className="button primary remoteLaunch large" href={guacamoleUrl} target="_blank" rel="noreferrer">
               <ExternalLink size={18} aria-hidden="true" />
               Open Remote Desktop
@@ -71,8 +160,14 @@ export function RemoteAccessPage({ settings }: RemoteAccessPageProps) {
 
         {error ? <div className="notice error">{error}</div> : null}
 
-        <div className="remoteFrameWrap">
-          <iframe className="remoteFrame" src={guacamoleUrl} title="Guacamole Remote Desktop" />
+        <div className="remoteFrameWrap" onMouseEnter={focusRemoteFrame}>
+          <iframe
+            ref={remoteFrameRef}
+            className="remoteFrame"
+            src={guacamoleUrl}
+            title="Guacamole Remote Desktop"
+            allow="fullscreen; clipboard-read; clipboard-write"
+          />
         </div>
       </section>
 
