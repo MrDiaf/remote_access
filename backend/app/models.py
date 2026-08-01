@@ -59,6 +59,7 @@ class MemoryStats(BaseModel):
 
 
 class DiskStats(BaseModel):
+    name: str
     mount: str
     total: int
     used: int
@@ -84,6 +85,7 @@ class SystemInfo(BaseModel):
     cpu_percent: float
     memory: MemoryStats
     disk: DiskStats
+    disks: list[DiskStats]
     uptime_seconds: int
     load_average: list[float]
     network: NetworkStats

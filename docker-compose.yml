@@ -30,11 +30,18 @@ services:
     environment:
       CONFIG_DIR: /config
       DATA_DIR: /data
+      HOST_MEDIA_ROOT: /host-media
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./config:/config:ro
       - ./scripts:/scripts:ro
+      - type: bind
+        source: ${HOST_MEDIA_PATH:-/run/media}
+        target: /host-media
+        read_only: true
+        bind:
+          propagation: rslave
       - backend-data:/data
       - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped

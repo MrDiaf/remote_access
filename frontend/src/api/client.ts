@@ -23,12 +23,22 @@ export type DashboardSettings = {
   remote_input: RemoteInputSettings;
 };
 
+export type DiskStats = {
+  name: string;
+  mount: string;
+  total: number;
+  used: number;
+  free: number;
+  percent: number;
+};
+
 export type SystemInfo = {
   server_name: string;
   online: boolean;
   cpu_percent: number;
   memory: { total: number; used: number; percent: number };
-  disk: { mount: string; total: number; used: number; free: number; percent: number };
+  disk: DiskStats;
+  disks: DiskStats[];
   uptime_seconds: number;
   load_average: number[];
   network: {

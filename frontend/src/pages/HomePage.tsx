@@ -69,6 +69,8 @@ export function HomePage() {
     void load();
   }, []);
 
+  const disks = system?.disks?.length ? system.disks : system ? [system.disk] : [];
+
   return (
     <div className="page">
       <header className="pageHeader">
@@ -93,12 +95,19 @@ export function HomePage() {
           value={system ? `${system.memory.percent.toFixed(0)}%` : '-'}
           detail={system ? `${formatBytes(system.memory.used)} / ${formatBytes(system.memory.total)}` : undefined}
         />
-        <StatCard
-          icon={HardDrive}
-          label="Disk"
-          value={system ? `${system.disk.percent.toFixed(0)}%` : '-'}
-          detail={system ? `${formatBytes(system.disk.used)} / ${formatBytes(system.disk.total)}` : undefined}
-        />
+        {disks.length ? (
+          disks.map((disk) => (
+            <StatCard
+              key={disk.mount}
+              icon={HardDrive}
+              label={disk.name || 'Drive'}
+              value={`${disk.percent.toFixed(0)}%`}
+              detail={`${formatBytes(disk.used)} / ${formatBytes(disk.total)}`}
+            />
+          ))
+        ) : (
+          <StatCard icon={HardDrive} label="Main drive" value="-" />
+        )}
         <StatCard
           icon={Timer}
           label="Uptime"
@@ -130,4 +139,3 @@ export function HomePage() {
     </div>
   );
 }
-
