@@ -7,6 +7,7 @@ services:
     depends_on:
       - frontend
       - backend
+      - terminal
     ports:
       - "${DASHBOARD_BIND:-0.0.0.0}:${DASHBOARD_HTTP_PORT:-8080}:80"
     volumes:
@@ -30,7 +31,9 @@ services:
     environment:
       CONFIG_DIR: /config
       DATA_DIR: /data
-      HOST_MEDIA_ROOT: /host-media
+      HOST_MEDIA_ROOTS: /host-media:/host-mnt
+      HOST_MEDIA_HOST_ROOTS: ${HOST_MEDIA_PATH:-/run/media}:${HOST_MOUNT_PATH:-/mnt}
+      HOST_ROOT: /host-root
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -42,8 +45,35 @@ services:
         read_only: true
         bind:
           propagation: rslave
+      - type: bind
+        source: ${HOST_MOUNT_PATH:-/mnt}
+        target: /host-mnt
+        read_only: true
+        bind:
+          propagation: rslave
+      # Read-only view of the whole host filesystem for the disk usage page.
+      - type: bind
+        source: /
+        target: /host-root
+        read_only: true
+        bind:
+          propagation: rslave
       - backend-data:/data
       - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+
+  terminal:
+    build:
+      context: ./terminal
+    container_name: scp-terminal
+    environment:
+      TERMINAL_SSH_HOST: ${TERMINAL_SSH_HOST:-host.docker.internal}
+      TERMINAL_SSH_PORT: ${TERMINAL_SSH_PORT:-22}
+      TERMINAL_SSH_USER: ${TERMINAL_SSH_USER:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - terminal-ssh:/home/terminal/.ssh
     restart: unless-stopped
 
   portainer:
@@ -106,6 +136,7 @@ services:
 
 volumes:
   backend-data:
+  terminal-ssh:
   caddy-data:
   caddy-config:
   portainer-data:

@@ -1,130 +1,187 @@
 # server-control-panel
 
-A browser-based remote control portal for an Ubuntu home server PC.
+A private, browser-based control panel for an Ubuntu home server.
 
-The main point of this project is simple:
+Open one URL from any computer, tablet, or phone on your LAN or VPN and you get:
 
-```text
-Any computer / phone / tablet with a browser
-  -> open the dashboard
-  -> click Remote Desktop
-  -> open Guacamole
-  -> control the Ubuntu server desktop
-```
+- **Remote Desktop**: control the server's real, logged-in GNOME screen in the
+  browser (Apache Guacamole + GNOME Remote Desktop over RDP).
+- **Terminal**: an SSH terminal to the server in the browser.
+- **Status**: CPU, RAM, uptime, network, every drive's fill level, and a disk
+  usage explorer that shows which folders take up the space.
+- **Docker, Services, Actions**: container status, service checks, and a few
+  allowlisted buttons.
 
-You do **not** need Windows. In tutorial videos, Windows is often just the RDP client. Here, **Guacamole is the RDP client**, and your browser views Guacamole.
-
-## What Runs Where
-
-Run this project on the **Ubuntu server PC** you want to control.
-
-Your daily computer only needs a browser.
+Everything runs in Docker Compose on the server itself. Your daily computer only
+needs a browser.
 
 ```text
-Daily computer browser
-  -> http://server-ip:8080
-  -> Guacamole web UI
-  -> guacd container
-  -> Ubuntu server's remote desktop service
-  -> Ubuntu desktop screen/session
+Browser -> http://server-ip:8080 (dashboard, Caddy)
+             |-- /guacamole/  -> Guacamole -> guacd -> host RDP :3389 -> GNOME desktop
+             |-- /terminal/   -> ttyd -> ssh -> host sshd :22
+             `-- /api/        -> FastAPI backend (status, disk usage, Docker)
 ```
-
-## Recommended Setup
-
-If the server has a real GNOME desktop and monitor, use:
-
-```text
-GNOME Remote Desktop over RDP
-```
-
-This is the path for controlling the actual logged-in Ubuntu desktop session.
-
-Use xrdp/XFCE only if you want a separate server-management desktop session.
 
 ## Security
 
-This is a private LAN/Tailscale/WireGuard tool.
+This is a private LAN/Tailscale/WireGuard tool. Never forward its ports to the
+public internet.
 
-The custom dashboard has no login for the MVP. Anyone who can reach it on your private network can open it. Guacamole, Portainer, and Cockpit keep their own logins.
+- The dashboard itself has **no login**. Anyone who can reach it on your
+  private network can open it.
+- The **Terminal** always asks for an SSH login (your Ubuntu username and
+  password, or key) before you get a shell. It is exactly as safe as SSH on
+  your LAN.
+- Guacamole, Portainer, and Cockpit keep their own logins.
+- The disk usage page can list the names and sizes of every folder on the
+  server (not file contents). The backend sees the host filesystem read-only.
 
-Do not expose these ports directly to the public internet:
+Keep these ports private: dashboard `8080`, Guacamole `8081`, SSH `22`,
+RDP `3389`, VNC `5900`, Portainer `9443`, Cockpit `9090`.
 
-- Dashboard `8080`
-- Guacamole `8081`
-- RDP `3389`
-- VNC `5900`
-- Portainer `9443`
-- Cockpit `9090`
+## Prerequisites
 
-## Fresh Setup After Git Pull
+On the Ubuntu server:
 
-Run these commands on the Ubuntu server PC.
+- Docker Engine with the Compose plugin, and your user in the `docker` group.
+- `make` and `git`.
+- An SSH server for the web terminal: `sudo apt install openssh-server`.
+- For the physical-screen remote desktop: a GNOME desktop session and
+  `gnome-remote-desktop` (installed by default on Ubuntu Desktop).
 
-1. Go to the project:
+You do not need Node, npm, or Python on the host. Everything builds in Docker.
+
+## First-Time Setup
+
+Run these once, on the server, from the project folder.
+
+1. Create `.env` with a random Guacamole database password:
 
    ```sh
-   cd /path/to/remote_access
+   make setup
    ```
 
-2. Create `.env` if it does not exist:
+   `make setup` never overwrites an existing `.env`. Look through `.env` for
+   the other settings (ports, drive folders, terminal SSH user).
 
-   ```sh
-   cp .env.example .env
-   ```
-
-3. Edit `.env` and change at least:
-
-   ```env
-   POSTGRES_PASSWORD=replace-with-a-strong-guacamole-db-password
-   GUACAMOLE_VERSION=1.6.0
-   ```
-
-4. Start the dashboard:
+2. Build and start everything:
 
    ```sh
    make up
    ```
 
-5. Start Guacamole:
+   This starts the dashboard, the Guacamole stack, the terminal, and
+   Portainer, waits until they are healthy, and prints the URLs.
 
-   ```sh
-   make remote-up
-   ```
-
-6. Enable sharing of the physical GNOME screen:
+3. Share the physical GNOME screen over RDP (run it in the logged-in desktop
+   session, not over SSH):
 
    ```sh
    make enable-physical-screen
    ```
 
-   It asks for a remote desktop username and password. Remember them. You will enter them in Guacamole.
+   It asks for a remote desktop username and password. You will enter them in
+   Guacamole next.
 
-7. Check the whole remote desktop path:
+4. Create the Guacamole connection once. See
+   [Create The Physical Ubuntu Desktop Connection](#create-the-physical-ubuntu-desktop-connection).
+
+5. Check everything:
 
    ```sh
-   make check-remote
+   make doctor
    ```
 
-   You want to see:
+6. Open `http://server-ip:8080` from another device.
 
-   ```text
-   ok: scp-guacamole is running
-   ok: scp-guacd is running
-   ok: scp-guacamole-db is running
-   ok: host.docker.internal resolves inside guacd
-   ok: host.docker.internal:3389 reachable from guacd container
-   ok: host is listening on TCP 3389
-   ```
+## Everyday Use
 
-8. Open the dashboard from another computer:
+```sh
+make up       # start or update everything (safe to run again)
+make down     # stop everything; data is kept
+make status   # show containers
+make doctor   # check boot autostart, terminal SSH, and remote desktop
+make help     # all commands
+```
 
-   ```text
-   http://server-ip:8080
-   ```
+After `git pull`, run `make up`. It rebuilds changed images and recreates only
+what changed. If the browser still shows old code, run `make refresh` and
+hard-refresh the page.
 
-9. Click **Remote Desktop**.
+## After A Reboot
 
-## First Guacamole Login
+You normally do not need to run anything:
+
+- Docker starts on boot, and every container has `restart: unless-stopped`, so
+  the whole stack comes back by itself. (Containers you stopped with
+  `make down` stay stopped until the next `make up`.)
+- GNOME Remote Desktop shares the **logged-in** desktop. After a reboot, the
+  physical screen is only available once someone is logged in to GNOME. To have
+  it available without touching the server, enable automatic login in
+  **Settings > System > Users** (or `AutomaticLoginEnable=true` in
+  `/etc/gdm3/custom.conf`).
+- The web terminal only needs `sshd`, which starts on boot by default.
+
+Run `make doctor` once after setup, and again if something is missing after a
+restart. It checks:
+
+- Docker is enabled at boot.
+- Every container is running and restarts after a reboot.
+- `sshd` is listening and reachable from the terminal container.
+- GNOME automatic login is enabled.
+- `gnome-remote-desktop` is enabled.
+- Guacamole can reach RDP on port 3389.
+
+If `make doctor` warns that Docker is not enabled at boot:
+
+```sh
+sudo systemctl enable docker
+```
+
+## Terminal
+
+Open **Terminal** in the dashboard (or `http://server-ip:8080/#terminal`).
+Type your Ubuntu username, then your password. You get a normal SSH shell on
+the server. **New session** starts a fresh login, and **Open in tab** gives
+the terminal a full browser tab.
+
+Settings in `.env`:
+
+```env
+TERMINAL_SSH_HOST=host.docker.internal   # the server itself
+TERMINAL_SSH_PORT=22
+TERMINAL_SSH_USER=                       # set to skip the username prompt
+```
+
+The terminal container (ttyd) has no shell of its own. It can only run `ssh`
+to the host, so the host's SSH login is the gate. The host key is remembered in
+the `terminal-ssh` Docker volume.
+
+## Disk Usage
+
+On the **Status** page, the **Disk usage** panel lists every drive. Click a
+drive to see its folders, largest first. Click a folder to go deeper, and use
+the path or the up arrow to go back.
+
+- Sizes are the disk space actually used (like `du`).
+- A folder that is another mounted drive shows as **separate drive** with that
+  drive's used space. Click it to scan that drive.
+- Results are cached for 10 minutes. **Rescan** refreshes them.
+- The first scan of a big drive can take a while (13 seconds for 70 GB on an
+  SSD). Very large folders time out after 5 minutes. Open a smaller folder if
+  that happens.
+
+Extra drives are discovered below `/run/media` (removable) and `/mnt`
+(persistent). Change `HOST_MEDIA_PATH` or `HOST_MOUNT_PATH` in `.env` if your
+server mounts them elsewhere.
+
+## Remote Desktop In Detail
+
+Use **GNOME Remote Desktop over RDP** to control the actual logged-in Ubuntu
+desktop. Use xrdp/XFCE only if you want a separate management session (see
+[Separate xrdp/XFCE Session](#separate-xrdpxfce-session)).
+
+### First Guacamole Login
 
 Open:
 
@@ -141,7 +198,7 @@ password: guacadmin
 
 Change that password immediately.
 
-## Create The Physical Ubuntu Desktop Connection
+### Create The Physical Ubuntu Desktop Connection
 
 In Guacamole:
 
@@ -233,21 +290,6 @@ Ubuntu Physical Desktop
 
 That should open the Ubuntu server desktop in the browser.
 
-## If You Already Had The Stack Running Before Git Pull
-
-After pulling new changes, run:
-
-```sh
-git pull
-make up
-make remote-up
-docker compose pull guacd guacamole
-docker compose --profile remote up -d --force-recreate guacd guacamole
-make check-remote
-```
-
-The force-recreate step matters if `guacd` was already running before the Docker Compose host mapping or Guacamole version was changed.
-
 ## Troubleshooting
 
 ### Guacamole Says Disconnected Immediately
@@ -338,6 +380,38 @@ make enable-physical-screen
 
 It does not have to be your Ubuntu login username unless you chose the same one.
 
+### Terminal Shows `Connection refused` Or Hangs
+
+The host SSH server is not running or not reachable from Docker:
+
+```sh
+sudo apt install openssh-server
+sudo systemctl enable --now ssh
+make doctor
+```
+
+If a firewall (ufw) is active, allow SSH from the Docker bridge network as well
+as your LAN.
+
+### Terminal Says The Host Key Changed
+
+This happens after reinstalling the server OS. Clear the remembered key:
+
+```sh
+make down
+docker volume rm server-control-panel_terminal-ssh
+make up
+```
+
+### Remote Desktop Is Missing After A Reboot
+
+Check that someone is logged in to GNOME on the server, or that automatic login
+is enabled (see [After A Reboot](#after-a-reboot)), then run `make doctor`. If
+port 3389 is not listening after an automatic login, log in once at the
+monitor. Automatic login does not unlock the GNOME keyring, and GNOME Remote
+Desktop may keep its RDP credentials there.
+
+
 ## Separate xrdp/XFCE Session
 
 If you want a separate desktop session instead of the physical monitor session:
@@ -360,49 +434,55 @@ xrdp/XFCE is useful for headless management, but it usually does not show the ex
 
 ## Make Commands
 
-Main commands:
+`make help` prints the full list. The main ones:
 
-- `make up` starts the dashboard stack.
-- `make remote-up` starts Guacamole, guacd, and PostgreSQL.
-- `make refresh` rebuilds/recreates the dashboard, starts the remote stack, and reapplies the saved remote keyboard setting to Guacamole.
-- `make shutdown` gracefully stops the dashboard and Guacamole stacks for maintenance or updates.
-- `make enable-physical-screen` enables GNOME physical monitor sharing over RDP.
-- `make check-remote` checks the Guacamole-to-RDP path.
-- `make down` stops the default stack.
-- `make remote-down` stops the Guacamole stack.
-- `make apply-remote-input` reapplies the saved remote keyboard setting to Guacamole RDP connections.
+| Command | What it does |
+| --- | --- |
+| `make setup` | First-time: create `.env` with a random DB password and the Guacamole schema |
+| `make up` | Build and start everything, wait until healthy, print URLs |
+| `make down` | Stop everything; keeps volumes and data |
+| `make status` | Show container status |
+| `make doctor` | Check boot autostart, terminal SSH, and the remote desktop path |
+| `make logs` | Follow logs |
+| `make refresh` | Force-recreate dashboard containers after an update |
+| `make enable-physical-screen` | Share the logged-in GNOME monitor over RDP |
+| `make check-remote` | Check only the Guacamole-to-RDP path |
+| `make apply-remote-input` | Reapply the saved remote keyboard layout to Guacamole |
+| `make test` | Run backend tests in a container |
+| `make backup` | Archive config, data, and `.env` into `backups/` |
 
-Other commands:
-
-- `make build`
-- `make restart`
-- `make logs`
-- `make ps`
-- `make guacamole-init`
-- `make install-host-remote-desktop`
-- `make backup`
-- `make restore`
+`make shutdown` and `make maintenance-stop` are older names for `make down`.
 
 ## Development Without Host npm
 
-Frontend production builds already run inside Docker using the frontend Dockerfile's `node:22-alpine` build stage. You do not need Node/npm installed on the host for normal rebuilds; use `make build`, `make refresh`, or `docker compose build frontend`.
-
-A dedicated Docker-based dev workflow is still a TODO. Future development should add `docker-compose.dev.yaml` plus Make wrappers such as `make dev` or `make frontend-dev-shell`, instead of requiring host npm.
+Frontend production builds run inside Docker, in the frontend Dockerfile's
+`node:22-alpine` build stage. Use `make up` or `make build` to rebuild. A
+live-reload development container is not set up yet.
 
 ## Ports
 
 Browser/client connects to:
 
 - Dashboard: `http://server-ip:8080`
-- Guacamole direct: `http://server-ip:8081/guacamole/`
+- Terminal through dashboard: `http://server-ip:8080/terminal/`
 - Guacamole through dashboard: `http://server-ip:8080/guacamole/`
+- Guacamole direct: `http://127.0.0.1:8081/guacamole/` (localhost only by default)
 
-Guacamole connects internally to:
+The containers connect to the host at:
 
-- `host.docker.internal:3389`
+- `host.docker.internal:3389` (RDP, from guacd)
+- `host.docker.internal:22` (SSH, from the terminal)
 
 Optional:
 
-- Portainer: `https://server-ip:9443`
+- Portainer: `https://127.0.0.1:9443` (localhost only by default)
 - Cockpit: `https://server-ip:9090`
-- VNC alternative: `5900`
+
+## Project Planning And Agent Handoff
+
+- [`PLAN.md`](PLAN.md) is the milestone status registry.
+- Each file under [`guidelines/milestones/`](guidelines/milestones/) is one
+  self-contained milestone.
+- [`handoff.md`](handoff.md) is the current product and operational context.
+- [`AGENTS.md`](AGENTS.md) and [`guidelines/`](guidelines/) define the agent
+  workflow and project rules.

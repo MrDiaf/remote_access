@@ -10,6 +10,7 @@ from .config import (
     load_services_config,
     save_dashboard_settings,
 )
+from .disk_usage import scan as scan_disk_usage
 from .docker_control import control_container, list_containers
 from .guacamole_input import apply_guacamole_input_settings
 from .models import (
@@ -18,6 +19,7 @@ from .models import (
     ActionSummary,
     DashboardSettings,
     DashboardSettingsUpdate,
+    DiskUsageResult,
     DockerContainerInfo,
     HealthResponse,
     RemoteInputApplyResult,
@@ -52,6 +54,11 @@ def update_settings(update: DashboardSettingsUpdate) -> DashboardSettings:
 def system() -> SystemInfo:
     settings = load_dashboard_settings()
     return get_system_info(settings.server_name)
+
+
+@app.get("/api/disk-usage", response_model=DiskUsageResult)
+def disk_usage(path: str = "/", refresh: bool = False) -> DiskUsageResult:
+    return scan_disk_usage(path, refresh)
 
 
 @app.get("/api/docker/containers", response_model=list[DockerContainerInfo])

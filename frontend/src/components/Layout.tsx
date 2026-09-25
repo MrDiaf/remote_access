@@ -5,11 +5,12 @@ import {
   Monitor,
   PlaySquare,
   ServerCog,
-  Settings
+  Settings,
+  SquareTerminal
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-export type PageKey = 'home' | 'docker' | 'remote' | 'services' | 'actions' | 'settings';
+export type PageKey = 'home' | 'docker' | 'remote' | 'terminal' | 'services' | 'actions' | 'settings';
 
 type LayoutProps = {
   activePage: PageKey;
@@ -20,6 +21,7 @@ type LayoutProps = {
 
 const navItems: Array<{ key: PageKey; label: string; icon: typeof Home }> = [
   { key: 'remote', label: 'Remote Desktop', icon: Monitor },
+  { key: 'terminal', label: 'Terminal', icon: SquareTerminal },
   { key: 'services', label: 'Services', icon: Activity },
   { key: 'home', label: 'Status', icon: Home },
   { key: 'docker', label: 'Docker', icon: Boxes },

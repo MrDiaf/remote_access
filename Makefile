@@ -1,55 +1,89 @@
-COMPOSE ?= docker compose
+# Every target works on the whole project, including the Guacamole services
+# that live in the "remote" Compose profile.
+COMPOSE ?= docker compose --profile remote
 GUACAMOLE_VERSION ?= 1.6.0
 BACKUP_DIR ?= backups
 BACKUP_FILE ?= $(BACKUP_DIR)/server-control-panel-$$(date +%Y%m%d-%H%M%S).tar.gz
 
-.PHONY: help up down shutdown maintenance-stop refresh restart build logs ps remote-up remote-down apply-remote-input guacamole-init check-remote install-host-remote-desktop enable-physical-screen backend-shell frontend-shell db-shell clean backup restore
+.PHONY: help setup up down shutdown maintenance-stop refresh restart build logs ps status doctor test preflight remote-up remote-down apply-remote-input guacamole-init check-remote install-host-remote-desktop enable-physical-screen backend-shell frontend-shell db-shell clean backup restore
 
 help:
 	@printf "server-control-panel commands\n\n"
-	@printf "  make up                Start dashboard, backend, proxy, and Portainer\n"
-	@printf "  make down              Stop the default stack\n"
-	@printf "  make shutdown          Gracefully stop dashboard and remote desktop stacks\n"
-	@printf "  make refresh           Rebuild/recreate dashboard and refresh remote helpers\n"
-	@printf "  make restart           Restart the default stack\n"
+	@printf "First time\n"
+	@printf "  make setup             Create .env with a random database password (never overwrites)\n"
+	@printf "  make enable-physical-screen  Share the logged-in GNOME monitor over RDP\n\n"
+	@printf "Everyday\n"
+	@printf "  make up                Build and start everything, wait until healthy, print URLs\n"
+	@printf "  make down              Stop everything (keeps all data)\n"
+	@printf "  make status            Show container status\n"
+	@printf "  make doctor            Check boot autostart, terminal SSH, and remote desktop\n"
+	@printf "  make logs              Follow logs\n\n"
+	@printf "After git pull / troubleshooting\n"
+	@printf "  make refresh           Rebuild and force-recreate dashboard containers\n"
+	@printf "  make restart           Restart all containers\n"
 	@printf "  make build             Rebuild images\n"
-	@printf "  make logs              Follow logs\n"
-	@printf "  make ps                Show container status\n"
-	@printf "  make remote-up         Start Guacamole, guacd, and PostgreSQL\n"
-	@printf "  make remote-down       Stop the Guacamole remote desktop stack\n"
+	@printf "  make check-remote      Check only the Guacamole -> RDP path\n"
 	@printf "  make apply-remote-input  Apply saved keyboard setting to Guacamole RDP connections\n"
+	@printf "  make remote-up         Start only Guacamole, guacd, and PostgreSQL\n"
+	@printf "  make remote-down       Stop only the Guacamole stack\n"
+	@printf "  make test              Run backend tests in a container\n\n"
+	@printf "Other\n"
+	@printf "  make install-host-remote-desktop  Install xrdp + XFCE (separate session, uses sudo)\n"
 	@printf "  make guacamole-init    Generate Guacamole PostgreSQL init schema\n"
-	@printf "  make check-remote      Check Guacamole and host RDP readiness\n"
-	@printf "  make install-host-remote-desktop  Install xrdp + XFCE on Ubuntu/Debian host\n"
-	@printf "  make enable-physical-screen       Share the logged-in GNOME monitor over RDP\n"
 	@printf "  make backend-shell     Open a shell in the backend container\n"
 	@printf "  make frontend-shell    Open a shell in the frontend container\n"
 	@printf "  make db-shell          Open psql in the Guacamole database container\n"
-	@printf "  make clean             Remove stopped containers and build cache carefully\n"
-	@printf "  make backup            Archive config and local data\n"
+	@printf "  make clean             Remove stopped containers and build cache (asks first)\n"
+	@printf "  make backup            Archive config, data, and .env\n"
 	@printf "  make restore           Print restore guidance\n"
 
-up:
-	$(COMPOSE) up -d
+setup:
+	@if [ -f .env ]; then \
+		printf ".env already exists; leaving it unchanged.\n"; \
+	else \
+		password=$$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32); \
+		sed "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$$password/" .env.example > .env; \
+		chmod 600 .env; \
+		printf "Created .env with a random POSTGRES_PASSWORD.\n"; \
+	fi
+	@$(MAKE) --no-print-directory guacamole-init
+	@printf "\nNext: make up\n"
+
+preflight:
+	@command -v docker >/dev/null 2>&1 || { \
+		printf "Docker is required. Install Docker Engine with the Compose plugin, then retry.\n" >&2; exit 1; }
+	@docker info >/dev/null 2>&1 || { \
+		printf "Docker is installed but not reachable.\n" >&2; \
+		printf "Start it with: sudo systemctl enable --now docker\n" >&2; \
+		printf "and make sure your user is in the docker group.\n" >&2; exit 1; }
+	@docker compose version >/dev/null 2>&1 || { \
+		printf "The Docker Compose plugin is required (docker compose ...).\n" >&2; exit 1; }
+	@[ -f .env ] || { printf ".env is missing. Run: make setup\n" >&2; exit 1; }
+	@if grep -q '^POSTGRES_PASSWORD=replace-with' .env; then \
+		printf "warning: POSTGRES_PASSWORD in .env is still the example value.\n" >&2; \
+	fi
+
+up: preflight guacamole-init
+	$(COMPOSE) up -d --build --wait --wait-timeout 180
+	@-$(MAKE) --no-print-directory apply-remote-input
+	@port=$$(sed -n 's/^DASHBOARD_HTTP_PORT=//p' .env | tail -n 1); port=$${port:-8080}; \
+	ip=$$(hostname -I 2>/dev/null | awk '{print $$1}'); ip=$${ip:-localhost}; \
+	printf "\nserver-control-panel is running.\n\n"; \
+	printf "  Dashboard:  http://%s:%s\n" "$$ip" "$$port"; \
+	printf "  Terminal:   http://%s:%s/#terminal\n" "$$ip" "$$port"; \
+	printf "  Guacamole:  http://%s:%s/guacamole/\n\n" "$$ip" "$$port"; \
+	printf "Containers start again by themselves after a reboot.\n"; \
+	printf "Run 'make doctor' to check that the whole server is ready for that.\n"
 
 down:
 	$(COMPOSE) down
 
-shutdown: maintenance-stop
+shutdown maintenance-stop: down
 
-maintenance-stop:
-	@printf "Stopping Guacamole remote desktop stack...\n"
-	$(COMPOSE) --profile remote stop guacamole guacd guacamole-db
-	@printf "Stopping default dashboard stack...\n"
-	$(COMPOSE) down
-	@printf "All project services are stopped for maintenance.\n"
-
-refresh: guacamole-init
-	@printf "Rebuilding and recreating dashboard containers...\n"
-	$(COMPOSE) up -d --build --force-recreate frontend backend reverse-proxy
-	@printf "Starting remote desktop containers...\n"
-	$(COMPOSE) --profile remote up -d guacamole-db guacd guacamole
-	$(MAKE) apply-remote-input
+refresh: preflight guacamole-init
+	$(COMPOSE) up -d --build --force-recreate --wait --wait-timeout 180 frontend backend terminal reverse-proxy
+	$(COMPOSE) up -d --wait --wait-timeout 180
+	@-$(MAKE) --no-print-directory apply-remote-input
 	@printf "Refresh complete. Hard-refresh the browser if an old asset is still cached.\n"
 
 restart:
@@ -61,25 +95,32 @@ build:
 logs:
 	$(COMPOSE) logs -f --tail=200
 
-ps:
+ps status:
 	$(COMPOSE) ps
 
+doctor:
+	@./scripts/check-host.sh
+	@./scripts/check-remote-desktop.sh
+
+test:
+	$(COMPOSE) run --rm --no-deps -v $(CURDIR)/backend/tests:/app/tests:ro backend python -m unittest discover -s tests -v
+
 remote-up: guacamole-init
-	$(COMPOSE) --profile remote up -d guacamole-db guacd guacamole
+	$(COMPOSE) up -d --wait --wait-timeout 180 guacamole-db guacd guacamole
 
 remote-down:
-	$(COMPOSE) --profile remote stop guacamole guacd guacamole-db
+	$(COMPOSE) stop guacamole guacd guacamole-db
 
 apply-remote-input:
 	COMPOSE_CMD="$(COMPOSE)" sh ./scripts/apply-guacamole-input-settings.sh
 
 guacamole-init:
-	mkdir -p data/guacamole
+	@mkdir -p data/guacamole
 	@if [ -d data/guacamole/initdb.sql ]; then \
 		printf "data/guacamole/initdb.sql is a directory; remove it and rerun make guacamole-init\n" >&2; \
 		exit 1; \
 	elif [ -s data/guacamole/initdb.sql ]; then \
-		printf "data/guacamole/initdb.sql already exists\n"; \
+		:; \
 	else \
 		if [ -f data/guacamole/initdb.sql ]; then \
 			printf "data/guacamole/initdb.sql exists but is empty; regenerating\n"; \
@@ -91,6 +132,7 @@ guacamole-init:
 				rm -f "$$tmp"; \
 				exit 1; \
 			fi; \
+			chmod 644 "$$tmp"; \
 			mv "$$tmp" data/guacamole/initdb.sql; \
 		else \
 			rm -f "$$tmp"; \
@@ -123,7 +165,7 @@ clean:
 
 backup:
 	mkdir -p "$(BACKUP_DIR)"
-	tar --ignore-failed-read -czf "$(BACKUP_FILE)" config data .env docker-compose.yml README.md AGENT.md
+	tar --ignore-failed-read -czf "$(BACKUP_FILE)" config data .env docker-compose.yml README.md AGENTS.md PLAN.md handoff.md guidelines
 	@printf "Backup written to %s\n" "$(BACKUP_FILE)"
 
 restore:

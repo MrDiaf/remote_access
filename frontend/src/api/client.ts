@@ -26,6 +26,7 @@ export type DashboardSettings = {
 export type DiskStats = {
   name: string;
   mount: string;
+  host_path: string | null;
   total: number;
   used: number;
   free: number;
@@ -47,6 +48,25 @@ export type SystemInfo = {
     bytes_sent: number;
     bytes_recv: number;
   };
+};
+
+export type DiskUsageEntry = {
+  name: string;
+  path: string;
+  size: number;
+  is_dir: boolean;
+  is_mount: boolean;
+};
+
+export type DiskUsageResult = {
+  path: string;
+  parent: string | null;
+  size: number;
+  entries: DiskUsageEntry[];
+  hidden_entries: number;
+  hidden_size: number;
+  scanned_at: number;
+  complete: boolean;
 };
 
 export type DockerContainer = {
@@ -149,6 +169,10 @@ export const api = {
       })
     }),
   system: () => request<SystemInfo>('/api/system'),
+  diskUsage: (path: string, refresh = false) =>
+    request<DiskUsageResult>(
+      `/api/disk-usage?path=${encodeURIComponent(path)}${refresh ? '&refresh=true' : ''}`
+    ),
   containers: () => request<DockerContainer[]>('/api/docker/containers'),
   containerAction: (name: string, action: 'start' | 'stop' | 'restart') =>
     request<DockerContainer>(`/api/docker/containers/${encodeURIComponent(name)}/${action}`, {

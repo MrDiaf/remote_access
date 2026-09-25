@@ -10,11 +10,12 @@ import psutil
 from .models import DiskStats, MemoryStats, NetworkAddress, NetworkStats, SystemInfo
 
 
-def _disk_stats(name: str, mount: str) -> DiskStats:
+def _disk_stats(name: str, mount: str, host_path: str | None) -> DiskStats:
     usage = psutil.disk_usage(mount)
     return DiskStats(
         name=name,
         mount=mount,
+        host_path=host_path,
         total=usage.total,
         used=usage.used,
         free=usage.free,
@@ -22,43 +23,66 @@ def _disk_stats(name: str, mount: str) -> DiskStats:
     )
 
 
-def _mounted_media_disks(root: str) -> list[DiskStats]:
-    if not root:
-        return []
-
-    media_root = Path(root)
+def _directories(path: Path) -> list[Path]:
     try:
-        owner_directories = sorted(
-            (entry for entry in media_root.iterdir() if entry.is_dir()),
+        return sorted(
+            (entry for entry in path.iterdir() if entry.is_dir()),
             key=lambda entry: entry.name.casefold(),
         )
     except OSError:
         return []
 
-    disks: list[DiskStats] = []
-    for owner_directory in owner_directories:
-        try:
-            candidates = sorted(
-                (entry for entry in owner_directory.iterdir() if entry.is_dir()),
-                key=lambda entry: entry.name.casefold(),
-            )
-        except OSError:
-            continue
 
-        for candidate in candidates:
+def _mounted_media_disks(roots: str, host_roots: str) -> list[DiskStats]:
+    """Find mounts one or two directories below each container-visible root.
+
+    Ubuntu normally puts removable media at /run/media/<user>/<label>, while
+    persistent data disks are commonly mounted at /mnt/<label>. The Compose
+    service exposes both parent directories read-only. host_roots lists the
+    matching host directories in the same order so the disk usage view can
+    open each drive by its host path.
+    """
+    disks: list[DiskStats] = []
+    seen_devices: set[int] = set()
+    host_root_list = [value.strip() for value in host_roots.split(os.pathsep)] if host_roots else []
+
+    for index, root in enumerate(value.strip() for value in roots.split(os.pathsep)):
+        if not root:
+            continue
+        host_root = host_root_list[index] if index < len(host_root_list) else ""
+
+        for entry in _directories(Path(root)):
+            candidates = [entry]
             try:
-                if candidate.is_mount():
-                    disks.append(_disk_stats(candidate.name, str(candidate)))
+                if not entry.is_mount():
+                    candidates = _directories(entry)
             except OSError:
                 continue
+
+            for candidate in candidates:
+                try:
+                    if not candidate.is_mount():
+                        continue
+                    device = candidate.stat().st_dev
+                    if device in seen_devices:
+                        continue
+                    seen_devices.add(device)
+                    host_path = None
+                    if host_root:
+                        host_path = str(Path(host_root) / candidate.relative_to(root))
+                    disks.append(_disk_stats(candidate.name, str(candidate), host_path))
+                except OSError:
+                    continue
 
     return disks
 
 
 def get_system_info(server_name: str) -> SystemInfo:
     memory = psutil.virtual_memory()
-    main_disk = _disk_stats("Main drive", "/")
-    disks = [main_disk, *_mounted_media_disks(os.environ.get("HOST_MEDIA_ROOT", ""))]
+    main_disk = _disk_stats("Main drive", "/", "/")
+    media_roots = os.environ.get("HOST_MEDIA_ROOTS", os.environ.get("HOST_MEDIA_ROOT", ""))
+    host_media_roots = os.environ.get("HOST_MEDIA_HOST_ROOTS", "")
+    disks = [main_disk, *_mounted_media_disks(media_roots, host_media_roots)]
     net = psutil.net_io_counters()
 
     addresses: list[NetworkAddress] = []

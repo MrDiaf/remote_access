@@ -1,0 +1,44 @@
+# Progress
+
+Milestone registry. Full instructions are in `guidelines/milestones/`. Keep the
+checkboxes here in sync with each milestone file.
+
+## Milestone 01 — Web terminal (`guidelines/milestones/01-web-terminal.md`)
+
+Status: implemented; waiting for confirmation on the real server.
+
+- [x] Terminal image builds and is served at `/terminal/` through Caddy
+- [x] Cross-origin websocket refused; dashboard origin reaches the host SSH password prompt
+- [x] Unsafe usernames refused
+- [x] Desktop and phone layout without horizontal overflow
+- [ ] User logs in and runs commands on the real server
+- [ ] User confirms typing works on a real phone
+
+## Milestone 02 — Disk usage explorer (`guidelines/milestones/02-disk-usage-explorer.md`)
+
+Status: implemented; waiting for confirmation on the real server.
+
+- [x] `make test` passes
+- [x] `/api/disk-usage` lists folders largest first and marks other mounts
+- [x] Unsafe paths refused (400/404)
+- [x] Drill-down UI works on desktop and phone
+- [ ] Extra drives open from their buttons on the real server
+
+## Milestone 03 — One-command setup and reboot recovery (`guidelines/milestones/03-setup-and-reboot.md`)
+
+Status: implemented; waiting for confirmation on the real server.
+
+- [x] `make help` is accurate and grouped
+- [x] `make setup` is safe and produces a working Guacamole schema
+- [x] `make preflight` and `make doctor` work
+- [ ] `make up` on the real server starts all 8 containers and prints URLs
+- [ ] Stack returns after a real reboot without running `make`
+
+## Backlog (no milestone file yet)
+
+These are described in `handoff.md` under "Known Unfinished Work". Write a
+milestone file before starting one.
+
+- Containerized frontend development (`docker-compose.dev.yaml`, no host npm)
+- Remote desktop reliability and stronger input capture
+- Remote audio through Guacamole/RDP

@@ -9,6 +9,10 @@
 		reverse_proxy backend:8000
 	}
 
+	handle /terminal* {
+		reverse_proxy terminal:7681
+	}
+
 	handle /guacamole* {
 		reverse_proxy guacamole:8080
 	}

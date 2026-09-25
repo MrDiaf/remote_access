@@ -8,8 +8,9 @@ import { HomePage } from './pages/HomePage';
 import { RemoteAccessPage } from './pages/RemoteAccessPage';
 import { ServicesPage } from './pages/ServicesPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { TerminalPage } from './pages/TerminalPage';
 
-const pages: PageKey[] = ['remote', 'services', 'home', 'docker', 'actions', 'settings'];
+const pages: PageKey[] = ['remote', 'terminal', 'services', 'home', 'docker', 'actions', 'settings'];
 
 function pageFromHash(): PageKey {
   const value = window.location.hash.replace('#', '') as PageKey;
@@ -62,6 +63,7 @@ export default function App() {
       {page === 'home' ? <HomePage /> : null}
       {page === 'docker' ? <DockerPage /> : null}
       {page === 'remote' ? <RemoteAccessPage settings={settings} /> : null}
+      {page === 'terminal' ? <TerminalPage /> : null}
       {page === 'services' ? <ServicesPage /> : null}
       {page === 'actions' ? <ActionsPage /> : null}
       {page === 'settings' ? <SettingsPage settings={settings} onSaved={setSettings} /> : null}

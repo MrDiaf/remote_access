@@ -61,10 +61,30 @@ class MemoryStats(BaseModel):
 class DiskStats(BaseModel):
     name: str
     mount: str
+    host_path: str | None = None
     total: int
     used: int
     free: int
     percent: float
+
+
+class DiskUsageEntry(BaseModel):
+    name: str
+    path: str
+    size: int
+    is_dir: bool
+    is_mount: bool = False
+
+
+class DiskUsageResult(BaseModel):
+    path: str
+    parent: str | None
+    size: int
+    entries: list[DiskUsageEntry]
+    hidden_entries: int
+    hidden_size: int
+    scanned_at: float
+    complete: bool
 
 
 class NetworkAddress(BaseModel):
