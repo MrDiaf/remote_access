@@ -1,0 +1,12 @@
+# Lets the backend read NVIDIA GPU usage with nvidia-smi for the Status page.
+# The Makefile adds this file only when Docker has the NVIDIA runtime
+# (NVIDIA Container Toolkit), because the request fails on hosts without it.
+services:
+  backend:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu, utility]

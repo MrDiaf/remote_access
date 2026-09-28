@@ -4,6 +4,7 @@ import {
   Database,
   File,
   Folder,
+  Gpu,
   HardDrive,
   Network,
   RefreshCw,
@@ -248,6 +249,15 @@ export function HomePage() {
           value={system ? `${system.memory.percent.toFixed(0)}%` : '-'}
           detail={system ? `${formatBytes(system.memory.used)} / ${formatBytes(system.memory.total)}` : undefined}
         />
+        {system?.gpus?.map((gpu, index) => (
+          <StatCard
+            key={`${gpu.name}-${index}`}
+            icon={Gpu}
+            label={system.gpus!.length > 1 ? `GPU ${index + 1}` : 'GPU'}
+            value={`${gpu.percent.toFixed(0)}%`}
+            detail={`VRAM ${formatBytes(gpu.memory.used)} / ${formatBytes(gpu.memory.total)}`}
+          />
+        ))}
         {disks.length ? (
           disks.map((disk) => (
             <StatCard

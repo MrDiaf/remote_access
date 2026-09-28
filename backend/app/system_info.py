@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import os
+import shutil
 import socket
+import subprocess
 import time
 from pathlib import Path
 
 import psutil
 
-from .models import DiskStats, MemoryStats, NetworkAddress, NetworkStats, SystemInfo
+from .models import DiskStats, GpuStats, MemoryStats, NetworkAddress, NetworkStats, SystemInfo
 
 
 def _disk_stats(name: str, mount: str, host_path: str | None) -> DiskStats:
@@ -77,6 +79,55 @@ def _mounted_media_disks(roots: str, host_roots: str) -> list[DiskStats]:
     return disks
 
 
+def _parse_nvidia_smi(output: str) -> list[GpuStats]:
+    """Parse `nvidia-smi --query-gpu=name,utilization.gpu,memory.used,memory.total
+    --format=csv,noheader,nounits`. Memory values are MiB."""
+    gpus: list[GpuStats] = []
+    for line in output.splitlines():
+        parts = [part.strip() for part in line.rsplit(",", 3)]
+        if len(parts) != 4:
+            continue
+        name, utilization, used_mib, total_mib = parts
+        try:
+            used = int(float(used_mib)) * 1024 * 1024
+            total = int(float(total_mib)) * 1024 * 1024
+            percent = float(utilization)
+        except ValueError:
+            # "[N/A]" on GPUs that do not report a value.
+            continue
+        gpus.append(
+            GpuStats(
+                name=name,
+                percent=percent,
+                memory=MemoryStats(total=total, used=used, percent=round(used / total * 100, 1) if total else 0.0),
+            )
+        )
+    return gpus
+
+
+def _gpu_stats() -> list[GpuStats]:
+    """NVIDIA GPUs only. nvidia-smi exists in the container only when Compose
+    grants the GPU (docker-compose.gpu.yml, added by the Makefile when Docker
+    has the NVIDIA runtime). Without it the Status page shows no GPU card."""
+    if not shutil.which("nvidia-smi"):
+        return []
+    try:
+        result = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=name,utilization.gpu,memory.used,memory.total",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=3,
+            check=True,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return []
+    return _parse_nvidia_smi(result.stdout)
+
+
 def get_system_info(server_name: str) -> SystemInfo:
     memory = psutil.virtual_memory()
     main_disk = _disk_stats("Main drive", "/", "/")
@@ -103,6 +154,7 @@ def get_system_info(server_name: str) -> SystemInfo:
         memory=MemoryStats(total=memory.total, used=memory.used, percent=memory.percent),
         disk=main_disk,
         disks=disks,
+        gpus=_gpu_stats(),
         uptime_seconds=int(time.time() - psutil.boot_time()),
         load_average=load_average,
         network=NetworkStats(

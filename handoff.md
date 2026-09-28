@@ -1,6 +1,6 @@
 # Agent Handoff
 
-Last refreshed: 2026-09-25
+Last refreshed: 2026-09-28
 
 ## Why This File Exists
 
@@ -38,6 +38,10 @@ to confirm them on the real server):
 - one-command lifecycle: `make setup`, `make up` (everything, including the
   Guacamole profile, with `--wait`), `make down` (everything), and
   `make doctor` (reboot readiness).
+
+Added on 2026-09-28: the Status page shows NVIDIA GPU usage and VRAM. The
+Makefile adds `docker-compose.gpu.yml` (GPU `utility` access for the backend)
+only when Docker has the `nvidia` runtime; otherwise the GPU card is hidden.
 
 The next unfinished areas are:
 

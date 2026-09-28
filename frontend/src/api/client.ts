@@ -33,6 +33,12 @@ export type DiskStats = {
   percent: number;
 };
 
+export type GpuStats = {
+  name: string;
+  percent: number;
+  memory: { total: number; used: number; percent: number };
+};
+
 export type SystemInfo = {
   server_name: string;
   online: boolean;
@@ -40,6 +46,7 @@ export type SystemInfo = {
   memory: { total: number; used: number; percent: number };
   disk: DiskStats;
   disks: DiskStats[];
+  gpus?: GpuStats[];
   uptime_seconds: number;
   load_average: number[];
   network: {

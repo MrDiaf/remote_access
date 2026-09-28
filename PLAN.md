@@ -34,6 +34,15 @@ Status: implemented; waiting for confirmation on the real server.
 - [ ] `make up` on the real server starts all 8 containers and prints URLs
 - [ ] Stack returns after a real reboot without running `make`
 
+## Milestone 04 — GPU usage on the Status page (`guidelines/milestones/04-gpu-status.md`)
+
+Status: implemented; waiting for confirmation on the real server.
+
+- [x] `make test` passes
+- [x] Backend reads NVIDIA GPU usage and VRAM when the GPU override is active
+- [x] GPU card hidden when no NVIDIA runtime is available
+- [ ] User sees the GPU card on the real server after `make up`
+
 ## Backlog (no milestone file yet)
 
 These are described in `handoff.md` under "Known Unfinished Work". Write a

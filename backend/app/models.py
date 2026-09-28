@@ -68,6 +68,12 @@ class DiskStats(BaseModel):
     percent: float
 
 
+class GpuStats(BaseModel):
+    name: str
+    percent: float
+    memory: MemoryStats
+
+
 class DiskUsageEntry(BaseModel):
     name: str
     path: str
@@ -106,6 +112,7 @@ class SystemInfo(BaseModel):
     memory: MemoryStats
     disk: DiskStats
     disks: list[DiskStats]
+    gpus: list[GpuStats] = []
     uptime_seconds: int
     load_average: list[float]
     network: NetworkStats

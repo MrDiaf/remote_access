@@ -1,6 +1,9 @@
 # Every target works on the whole project, including the Guacamole services
 # that live in the "remote" Compose profile.
-COMPOSE ?= docker compose --profile remote
+# docker-compose.gpu.yml lets the backend report NVIDIA GPU usage. It is added
+# only when Docker has the NVIDIA runtime, since the GPU request fails without it.
+GPU_COMPOSE := $(shell docker info --format '{{json .Runtimes}}' 2>/dev/null | grep -q nvidia && echo "-f docker-compose.yml -f docker-compose.gpu.yml")
+COMPOSE ?= docker compose $(GPU_COMPOSE) --profile remote
 GUACAMOLE_VERSION ?= 1.6.0
 BACKUP_DIR ?= backups
 BACKUP_FILE ?= $(BACKUP_DIR)/server-control-panel-$$(date +%Y%m%d-%H%M%S).tar.gz
