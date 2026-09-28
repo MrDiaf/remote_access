@@ -59,8 +59,8 @@ container, Docker socket access for the terminal, and dashboard login.
 - [x] Through Caddy, the session shows `Username:` and then the host's SSH password prompt
 - [x] Usernames `-oProxyCommand=id`, `a b`, `root@evil`, and an empty name are refused
 - [x] Terminal page renders on desktop (1280 px) and phone (390 px) widths without horizontal page overflow
-- [ ] User logs in and runs commands from the Terminal page on the real server
-- [ ] User confirms typing works on a real phone
+- [X] User logs in and runs commands from the Terminal page on the real server
+- [X] User confirms typing works on a real phone
 
 ## Verification
 

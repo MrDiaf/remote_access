@@ -54,7 +54,7 @@ scan history.
 - [x] `/api/disk-usage?path=/` on this dev machine lists `/home`, `/var`, `/usr`, … and marks `/tmp` and `/run` as mounts (took 13 s for 72 GB)
 - [x] `/proc` returns 400 and a missing folder returns 404
 - [x] Panel drill-down (`/` → `/var`) renders on desktop and phone without horizontal overflow
-- [ ] User confirms extra drives under `/mnt` or `/run/media` open from their drive buttons on the real server
+- [X] User confirms extra drives under `/mnt` or `/run/media` open from their drive buttons on the real server
 
 ## Verification
 
