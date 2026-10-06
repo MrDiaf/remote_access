@@ -43,6 +43,17 @@ Status: implemented; waiting for confirmation on the real server.
 - [x] GPU card hidden when no NVIDIA runtime is available
 - [ ] User sees the GPU card on the real server after `make up`
 
+## Milestone 05 — Terminal UI frontend (`guidelines/milestones/05-tui-frontend.md`)
+
+Status: implemented; waiting for confirmation on the real server.
+
+- [x] `make tui` opens the TUI against the running stack
+- [x] Every tab loads real data from the running backend
+- [x] Headless Textual tests drive every tab and pass in `make test`
+- [x] Confirmation rules match the browser
+- [x] Unsafe SSH usernames refused
+- [ ] User confirms the TUI works on the real server
+
 ## Backlog (no milestone file yet)
 
 These are described in `handoff.md` under "Known Unfinished Work". Write a

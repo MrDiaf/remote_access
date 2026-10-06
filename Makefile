@@ -8,7 +8,7 @@ GUACAMOLE_VERSION ?= 1.6.0
 BACKUP_DIR ?= backups
 BACKUP_FILE ?= $(BACKUP_DIR)/server-control-panel-$$(date +%Y%m%d-%H%M%S).tar.gz
 
-.PHONY: help setup up down shutdown maintenance-stop refresh restart build logs ps status doctor test preflight remote-up remote-down apply-remote-input guacamole-init check-remote install-host-remote-desktop enable-physical-screen backend-shell frontend-shell db-shell clean backup restore
+.PHONY: help setup up tui down shutdown maintenance-stop refresh restart build logs ps status doctor test preflight remote-up remote-down apply-remote-input guacamole-init check-remote install-host-remote-desktop enable-physical-screen backend-shell frontend-shell db-shell clean backup restore
 
 help:
 	@printf "server-control-panel commands\n\n"
@@ -20,7 +20,8 @@ help:
 	@printf "  make down              Stop everything (keeps all data)\n"
 	@printf "  make status            Show container status\n"
 	@printf "  make doctor            Check boot autostart, terminal SSH, and remote desktop\n"
-	@printf "  make logs              Follow logs\n\n"
+	@printf "  make logs              Follow logs\n"
+	@printf "  make tui               Open the terminal UI (every dashboard feature, no browser)\n\n"
 	@printf "After git pull / troubleshooting\n"
 	@printf "  make refresh           Rebuild and force-recreate dashboard containers\n"
 	@printf "  make restart           Restart all containers\n"
@@ -29,7 +30,7 @@ help:
 	@printf "  make apply-remote-input  Apply saved keyboard setting to Guacamole RDP connections\n"
 	@printf "  make remote-up         Start only Guacamole, guacd, and PostgreSQL\n"
 	@printf "  make remote-down       Stop only the Guacamole stack\n"
-	@printf "  make test              Run backend tests in a container\n\n"
+	@printf "  make test              Run backend and TUI tests in containers\n\n"
 	@printf "Other\n"
 	@printf "  make install-host-remote-desktop  Install xrdp + XFCE (separate session, uses sudo)\n"
 	@printf "  make guacamole-init    Generate Guacamole PostgreSQL init schema\n"
@@ -78,6 +79,11 @@ up: preflight guacamole-init
 	printf "Containers start again by themselves after a reboot.\n"; \
 	printf "Run 'make doctor' to check that the whole server is ready for that.\n"
 
+tui: preflight
+	@port=$$(sed -n 's/^DASHBOARD_HTTP_PORT=//p' .env | tail -n 1); port=$${port:-8080}; \
+	ip=$$(hostname -I 2>/dev/null | awk '{print $$1}'); ip=$${ip:-localhost}; \
+	SCP_DASHBOARD_URL="http://$$ip:$$port" $(COMPOSE) --profile tui run --rm --build tui
+
 down:
 	$(COMPOSE) down
 
@@ -107,6 +113,7 @@ doctor:
 
 test:
 	$(COMPOSE) run --rm --no-deps -v $(CURDIR)/backend/tests:/app/tests:ro backend python -m unittest discover -s tests -v
+	$(COMPOSE) --profile tui run --rm --build --no-deps -v $(CURDIR)/tui/tests:/app/tests:ro tui python -m unittest discover -s tests -v
 
 remote-up: guacamole-init
 	$(COMPOSE) up -d --wait --wait-timeout 180 guacamole-db guacd guacamole

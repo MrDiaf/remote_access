@@ -76,6 +76,25 @@ services:
       - terminal-ssh:/home/terminal/.ssh
     restart: unless-stopped
 
+  # Terminal UI, started on demand with `make tui`; `make up` never starts it.
+  tui:
+    build:
+      context: ./tui
+    profiles:
+      - tui
+    environment:
+      SCP_API_URL: http://backend:8000
+      SCP_DASHBOARD_URL: ${SCP_DASHBOARD_URL:-}
+      TERMINAL_SSH_HOST: ${TERMINAL_SSH_HOST:-host.docker.internal}
+      TERMINAL_SSH_PORT: ${TERMINAL_SSH_PORT:-22}
+      TERMINAL_SSH_USER: ${TERMINAL_SSH_USER:-}
+      TERM: ${TERM:-xterm-256color}
+      COLORTERM: ${COLORTERM:-truecolor}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - tui-ssh:/home/tui/.ssh
+
   portainer:
     image: portainer/portainer-ce:latest
     container_name: scp-portainer
@@ -137,6 +156,7 @@ services:
 volumes:
   backend-data:
   terminal-ssh:
+  tui-ssh:
   caddy-data:
   caddy-config:
   portainer-data:

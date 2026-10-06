@@ -13,7 +13,8 @@ Open one URL from any computer, tablet, or phone on your LAN or VPN and you get:
   allowlisted buttons.
 
 Everything runs in Docker Compose on the server itself. Your daily computer only
-needs a browser.
+needs a browser. Without a browser, `make tui` opens the same features in a
+keyboard-driven terminal UI (see [Terminal UI](#terminal-ui)).
 
 ```text
 Browser -> http://server-ip:8080 (dashboard, Caddy)
@@ -101,6 +102,7 @@ make up       # start or update everything (safe to run again)
 make down     # stop everything; data is kept
 make status   # show containers
 make doctor   # check boot autostart, terminal SSH, and remote desktop
+make tui      # the dashboard as a terminal UI
 make help     # all commands
 ```
 
@@ -156,6 +158,30 @@ TERMINAL_SSH_USER=                       # set to skip the username prompt
 The terminal container (ttyd) has no shell of its own. It can only run `ssh`
 to the host, so the host's SSH login is the gate. The host key is remembered in
 the `terminal-ssh` Docker volume.
+
+## Terminal UI
+
+`make tui` opens the dashboard as a terminal UI. It's useful over SSH or at the
+server's own console. Start the stack with `make up` first; the TUI talks to the
+same backend API as the browser.
+
+| Key | Does |
+| --- | --- |
+| `1`–`7` | Remote Desktop, Terminal, Services, Status, Docker, Actions, Settings |
+| `r` | Refresh the current tab |
+| arrows, `Enter` | Move in tables; open a folder, container, or action |
+| `u` / `s` | Disk usage: up one folder / rescan |
+| `y` / `n` | Confirm / cancel a dialog |
+| `q` | Quit |
+
+Every browser feature is there, with one exception: the **Remote Desktop**
+tab can't show the desktop picture in a terminal. It shows the Guacamole and
+RDP status, the keyboard settings, a button to apply the keyboard layout, and
+the Guacamole URL to open in a browser. The **Terminal** tab pauses the TUI and
+opens an SSH login to the host; type `exit` to return.
+
+The TUI runs in a container, so the host needs no Python. It has no Docker
+socket and no shell of its own.
 
 ## Disk Usage
 
@@ -444,11 +470,12 @@ xrdp/XFCE is useful for headless management, but it usually does not show the ex
 | `make status` | Show container status |
 | `make doctor` | Check boot autostart, terminal SSH, and the remote desktop path |
 | `make logs` | Follow logs |
+| `make tui` | Open the terminal UI |
 | `make refresh` | Force-recreate dashboard containers after an update |
 | `make enable-physical-screen` | Share the logged-in GNOME monitor over RDP |
 | `make check-remote` | Check only the Guacamole-to-RDP path |
 | `make apply-remote-input` | Reapply the saved remote keyboard layout to Guacamole |
-| `make test` | Run backend tests in a container |
+| `make test` | Run backend and TUI tests in containers |
 | `make backup` | Archive config, data, and `.env` into `backups/` |
 
 `make shutdown` and `make maintenance-stop` are older names for `make down`.

@@ -43,6 +43,13 @@ Added on 2026-09-28: the Status page shows NVIDIA GPU usage and VRAM. The
 Makefile adds `docker-compose.gpu.yml` (GPU `utility` access for the backend)
 only when Docker has the `nvidia` runtime; otherwise the GPU card is hidden.
 
+Added on 2026-10-06: a terminal UI (`tui/`, Python + Textual, `make tui`) with
+every dashboard feature except the remote desktop picture itself. It uses only
+the backend HTTP API (no Docker socket) and runs in the `tui` Compose profile,
+so `make up` never starts it. Its keyboard layout lists duplicate
+`frontend/src/remoteInputOptions.ts`. When a browser page gains a feature,
+add it to the matching TUI tab and to `tui/tests/test_tui.py`.
+
 The next unfinished areas are:
 
 1. a Docker-based development workflow that does not require host npm;
