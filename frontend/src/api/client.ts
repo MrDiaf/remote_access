@@ -126,6 +126,12 @@ export type ActionRunResult = {
   output: string | null;
 };
 
+export type SteamStatus = {
+  configured: boolean;
+  state: string;
+  message: string;
+};
+
 export class ApiError extends Error {
   status: number;
 
@@ -194,6 +200,12 @@ export const api = {
   actions: () => request<ActionSummary[]>('/api/actions'),
   runAction: (id: string, confirmed: boolean) =>
     request<ActionRunResult>(`/api/actions/${encodeURIComponent(id)}/run`, {
+      method: 'POST',
+      body: JSON.stringify({ confirmed })
+    }),
+  steam: () => request<SteamStatus>('/api/steam'),
+  steamControl: (action: 'start' | 'stop', confirmed = false) =>
+    request<SteamStatus>(`/api/steam/${action}`, {
       method: 'POST',
       body: JSON.stringify({ confirmed })
     })

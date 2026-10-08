@@ -170,3 +170,11 @@ class ActionRunResult(BaseModel):
     message: str
     exit_code: int | None = None
     output: str | None = None
+
+
+class SteamStatus(BaseModel):
+    configured: bool
+    # running, stopped, starting, stopping, not set up, no desktop,
+    # not installed, unreachable, or error.
+    state: str
+    message: str

@@ -54,6 +54,27 @@ Status: implemented; waiting for confirmation on the real server.
 - [x] Unsafe SSH usernames refused
 - [ ] User confirms the TUI works on the real server
 
+## Milestone 06 — Start and quit Steam (`guidelines/milestones/06-steam-control.md`)
+
+Status: implemented; waiting for confirmation on the real server.
+
+- [x] `make test` passes, including the forced command refusing every verb except status/start/stop
+- [x] `GET /api/steam` reports `not set up` before setup; stop without confirmation returns 409
+- [x] The forced command reports a running Steam and does not start a second copy
+- [x] The Steam card fits desktop and phone widths
+- [ ] On the real server, Start opens Steam on the desktop and Stop quits it, from the phone
+
+## Milestone 07 — `make up` sets up everything (`guidelines/milestones/07-guided-make-up.md`)
+
+Status: implemented; waiting for confirmation on the real server.
+
+- [x] `make env` creates `.env` once and never overwrites it
+- [x] Without a TTY, host setup only reports the real state
+- [x] With answers, it creates a working Guacamole connection and changes the `guacadmin` password
+- [x] "n" is remembered; `make setup-host` asks again
+- [x] `make test` still passes
+- [ ] On the real server, one `make up` finishes setup and the phone reaches the desktop
+
 ## Backlog (no milestone file yet)
 
 These are described in `handoff.md` under "Known Unfinished Work". Write a

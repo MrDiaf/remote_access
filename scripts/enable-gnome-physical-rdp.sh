@@ -16,17 +16,25 @@ fi
 printf "This configures GNOME Remote Desktop for the CURRENT logged-in user.\n"
 printf "It mirrors the physical GNOME screen over RDP on TCP 3389.\n\n"
 
-read -r -p "Remote desktop username: " remote_user
+# make up (scripts/setup-host.sh) passes the login in; otherwise ask.
+remote_user=${RDP_USERNAME:-}
+remote_pass=${RDP_PASSWORD:-}
+
+if [ -z "$remote_user" ]; then
+  read -r -p "Remote desktop username: " remote_user
+fi
 if [ -z "$remote_user" ]; then
   printf "Username is required.\n" >&2
   exit 1
 fi
 
-stty -echo
-printf "Remote desktop password: "
-read -r remote_pass
-printf "\n"
-stty echo
+if [ -z "$remote_pass" ]; then
+  stty -echo
+  printf "Remote desktop password: "
+  read -r remote_pass
+  printf "\n"
+  stty echo
+fi
 
 if [ -z "$remote_pass" ]; then
   printf "Password is required.\n" >&2

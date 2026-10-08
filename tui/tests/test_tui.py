@@ -94,6 +94,16 @@ class FakeApi:
         self.calls.append(("run_action", action_id, confirmed))
         return {"id": action_id, "success": True, "message": "Done [ok]", "exit_code": 0, "output": "out [x]"}
 
+    steam_state = "stopped"
+
+    def steam(self):
+        return {"configured": True, "state": self.steam_state, "message": f"Steam is {self.steam_state}."}
+
+    def steam_control(self, action, confirmed=False):
+        self.calls.append(("steam_control", action, confirmed))
+        self.steam_state = "starting" if action == "start" else "stopped"
+        return self.steam()
+
 
 class TuiTest(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
@@ -200,6 +210,43 @@ class TuiTest(unittest.IsolatedAsyncioTestCase):
 
             await self.select_row(pilot, "#actions-table", 2)  # disabled
             self.assertFalse(any(call[:2] == ("run_action", "off") for call in self.api.calls))
+
+    async def test_steam_starts_directly_and_quits_after_confirmation(self):
+        async with self.app.run_test(size=(140, 50)) as pilot:
+            await pilot.press("6")
+            await self.settle(pilot)
+            status = self.app.query_one("#steam-status", Static)
+            self.assertIn("stopped", str(status.render()))
+
+            self.app.query_one("#actions-table", DataTable).focus()
+            await pilot.press("s")
+            await self.settle(pilot)
+            self.assertIn(("steam_control", "start", False), self.api.calls)
+            self.assertIn("starting", str(status.render()))
+
+            await pilot.press("s")
+            await self.settle(pilot)
+            self.assertIsInstance(self.app.screen, ConfirmScreen)
+            await pilot.press("n")
+            await self.settle(pilot)
+            self.assertNotIn(("steam_control", "stop", True), self.api.calls)
+
+            await pilot.press("s")
+            await self.settle(pilot)
+            await pilot.press("y")
+            await self.settle(pilot)
+            self.assertIn(("steam_control", "stop", True), self.api.calls)
+            self.assertIn("stopped", str(status.render()))
+
+    async def test_steam_not_set_up_only_warns(self):
+        self.api.steam = lambda: {"configured": False, "state": "not set up", "message": "Run make enable-steam-control"}
+        async with self.app.run_test(size=(140, 50)) as pilot:
+            await pilot.press("6")
+            await self.settle(pilot)
+            self.app.query_one("#actions-table", DataTable).focus()
+            await pilot.press("s")
+            await self.settle(pilot)
+            self.assertFalse(any(call[0] == "steam_control" for call in self.api.calls))
 
     async def test_settings_save_then_apply(self):
         async with self.app.run_test(size=(140, 70)) as pilot:

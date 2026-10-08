@@ -54,46 +54,40 @@ You do not need Node, npm, or Python on the host. Everything builds in Docker.
 
 ## First-Time Setup
 
-Run these once, on the server, from the project folder.
+On the server, in the project folder, from a terminal in the logged-in desktop
+(or over SSH while someone is logged in to the desktop):
 
-1. Create `.env` with a random Guacamole database password:
+```sh
+make up
+```
 
-   ```sh
-   make setup
-   ```
+That is the whole setup. `make up`:
 
-   `make setup` never overwrites an existing `.env`. Look through `.env` for
-   the other settings (ports, drive folders, terminal SSH user).
+1. creates `.env` with a random Guacamole database password if it is missing
+   (it never overwrites it);
+2. builds and starts every container and waits until they are healthy;
+3. goes through the host setup and asks about each step that is not done yet:
 
-2. Build and start everything:
+   | Step | What you type |
+   | --- | --- |
+   | Start Docker on boot | your sudo password |
+   | Install the SSH server (Terminal page) | your sudo password |
+   | Share this desktop's screen over RDP | a new remote desktop username and password |
+   | Create the Guacamole connection to it | nothing new; it reuses that login |
+   | Change Guacamole's default `guacadmin` password | a new password, twice |
+   | Let the dashboard start and quit Steam (only if Steam is installed) | nothing |
 
-   ```sh
-   make up
-   ```
+4. prints the URLs.
 
-   This starts the dashboard, the Guacamole stack, the terminal, and
-   Portainer, waits until they are healthy, and prints the URLs.
+Steps that are already done print `ok` and ask nothing, so `make up` stays
+safe to repeat. Answer `n` to skip a step; `make up` remembers that, and
+`make setup-host` asks about every step again. Without a terminal (for example
+`ssh server make up`), nothing is asked and the missing steps are listed as
+`todo`.
 
-3. Share the physical GNOME screen over RDP (run it in the logged-in desktop
-   session, not over SSH):
-
-   ```sh
-   make enable-physical-screen
-   ```
-
-   It asks for a remote desktop username and password. You will enter them in
-   Guacamole next.
-
-4. Create the Guacamole connection once. See
-   [Create The Physical Ubuntu Desktop Connection](#create-the-physical-ubuntu-desktop-connection).
-
-5. Check everything:
-
-   ```sh
-   make doctor
-   ```
-
-6. Open `http://server-ip:8080` from another device.
+Then open `http://server-ip:8080` from another device, and run `make doctor`
+for a full check. Look through `.env` for the other settings (ports, drive
+folders, terminal SSH user).
 
 ## Everyday Use
 
@@ -201,6 +195,20 @@ Extra drives are discovered below `/run/media` (removable) and `/mnt`
 (persistent). Change `HOST_MEDIA_PATH` or `HOST_MOUNT_PATH` in `.env` if your
 server mounts them elsewhere.
 
+## Steam
+
+The **Actions** page has a Steam card that shows whether Steam is running and
+lets you start it or quit it. In the TUI, press `s` on the Actions tab. When
+Steam is installed, `make up` offers to set this up (or run
+`make enable-steam-control` yourself, as the user who logs in to the desktop).
+
+This gives the backend its own SSH key, and `~/.ssh/authorized_keys` limits
+that key to one script that accepts only `status`, `start`, and `stop`. Steam
+opens on the logged-in desktop, so someone must be logged in. Quitting asks
+for confirmation and closes Steam cleanly; it never force-kills a running game.
+To revoke access, delete the line ending in `scp-steam-control` from
+`~/.ssh/authorized_keys`.
+
 ## Remote Desktop In Detail
 
 Use **GNOME Remote Desktop over RDP** to control the actual logged-in Ubuntu
@@ -215,16 +223,14 @@ Open:
 http://server-ip:8080/guacamole/
 ```
 
-Default login is usually:
-
-```text
-username: guacadmin
-password: guacadmin
-```
-
-Change that password immediately.
+Log in as `guacadmin` with the password you chose during `make up`. If you
+skipped that step, the password is still `guacadmin`; run `make setup-host`
+to change it.
 
 ### Create The Physical Ubuntu Desktop Connection
+
+`make up` creates this connection for you ("Ubuntu Physical Desktop") as soon
+as Guacamole has no RDP connection. Do it by hand only to add or change one.
 
 In Guacamole:
 
@@ -464,8 +470,9 @@ xrdp/XFCE is useful for headless management, but it usually does not show the ex
 
 | Command | What it does |
 | --- | --- |
-| `make setup` | First-time: create `.env` with a random DB password and the Guacamole schema |
-| `make up` | Build and start everything, wait until healthy, print URLs |
+| `make setup` | Only create `.env` and the Guacamole schema (`make up` does this too) |
+| `make up` | Set up and start everything; asks about any host step still missing |
+| `make setup-host` | Ask again about every host step, including skipped ones |
 | `make down` | Stop everything; keeps volumes and data |
 | `make status` | Show container status |
 | `make doctor` | Check boot autostart, terminal SSH, and the remote desktop path |
@@ -473,6 +480,7 @@ xrdp/XFCE is useful for headless management, but it usually does not show the ex
 | `make tui` | Open the terminal UI |
 | `make refresh` | Force-recreate dashboard containers after an update |
 | `make enable-physical-screen` | Share the logged-in GNOME monitor over RDP |
+| `make enable-steam-control` | Let the dashboard start and quit Steam (Actions page) |
 | `make check-remote` | Check only the Guacamole-to-RDP path |
 | `make apply-remote-input` | Reapply the saved remote keyboard layout to Guacamole |
 | `make test` | Run backend and TUI tests in containers |

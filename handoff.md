@@ -1,6 +1,6 @@
 # Agent Handoff
 
-Last refreshed: 2026-09-28
+Last refreshed: 2026-10-09
 
 ## Why This File Exists
 
@@ -49,6 +49,20 @@ the backend HTTP API (no Docker socket) and runs in the `tui` Compose profile,
 so `make up` never starts it. Its keyboard layout lists duplicate
 `frontend/src/remoteInputOptions.ts`. When a browser page gains a feature,
 add it to the matching TUI tab and to `tui/tests/test_tui.py`.
+
+Added on 2026-10-09: a Steam card on the Actions page (and `s` on the TUI
+Actions tab) starts Steam on the logged-in desktop and quits it cleanly. The
+backend SSHes to the host with a key that `authorized_keys` pins to
+`scripts/host/steam-control.sh` (status/start/stop only). `make up` offers to
+set it up when Steam is installed. This is unverified on the real server.
+
+Added on 2026-10-09 (user decision): `make up` is the whole setup. After the
+containers are healthy, `scripts/setup-host.sh` checks each one-time host step
+and asks `[Y/n]` about the missing ones: Docker on boot, the SSH server, GNOME
+RDP sharing, the Guacamole connection, the default `guacadmin` password, and
+Steam control. "n" is remembered in `data/host-setup.skip`; `make setup-host`
+asks again. New one-time host steps belong in that script, not in a separate
+README instruction. GNOME automatic login is only pointed out, never changed.
 
 The next unfinished areas are:
 
@@ -111,6 +125,11 @@ physical-screen path.
   it that way.
 - Container and host controls must be allowlisted. Dangerous host actions must
   require confirmation.
+- The only host action that crosses from a container to the host is Steam
+  control. It uses an SSH key restricted by `restrict,command=` to a script
+  that accepts only `status`/`start`/`stop`. Any new host action must use the
+  same forced-command pattern (one key and one script per purpose), never a
+  general SSH key or a shell.
 - The frontend must never access the Docker socket. The backend may use it only
   for scoped status and allowlisted controls.
 - Production frontend builds already happen in a `node:22-alpine` Docker stage.
@@ -177,9 +196,12 @@ start by building custom audio streaming.
 Important commands:
 
 - `make setup`: create `.env` with a random DB password (never overwrites)
-  and the Guacamole schema.
-- `make up`: preflight checks, build, start every service, wait for healthy,
-  apply the remote keyboard layout, and print URLs. Safe to repeat.
+  and the Guacamole schema. `make up` does this too.
+- `make setup-host`: ask again about every one-time host step, including
+  steps skipped earlier.
+- `make up`: create `.env` if missing, preflight checks, build, start every
+  service, wait for healthy, run the host setup (prompts only for missing
+  steps), apply the remote keyboard layout, and print URLs. Safe to repeat.
 - `make down` (also `make shutdown` / `make maintenance-stop`): stop every
   service and keep volumes.
 - `make doctor`: read-only reboot readiness check (`scripts/check-host.sh`),
@@ -193,6 +215,9 @@ Important commands:
   Guacamole RDP connections.
 - `make check-remote`: inspect Guacamole and host RDP readiness.
 - `make enable-physical-screen`: configure GNOME physical-screen RDP.
+- `make enable-steam-control`: install the Steam forced command, create the
+  backend's key in `data/steam-control/`, and authorize it (no sudo). Revoke
+  by deleting the `scp-steam-control` line from `~/.ssh/authorized_keys`.
 - `make install-host-remote-desktop`: install the alternate xrdp/XFCE path.
 
 Important state:

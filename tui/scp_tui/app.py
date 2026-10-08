@@ -474,19 +474,56 @@ class DockerTab(Page):
             self.reload()
 
 
+STEAM_ACTIVE = {"running", "starting", "stopping"}
+
+
 class ActionsTab(Page):
+    BINDINGS = [Binding("s", "toggle_steam", "Start/quit Steam")]
+
     def compose(self) -> ComposeResult:
-        yield Static("Enter runs the selected action.", classes="intro")
+        yield Static(id="steam-status")
+        yield Static("Enter runs the selected action. s starts or quits Steam.", classes="intro")
         yield DataTable(id="actions-table", cursor_type="row", zebra_stripes=True)
         yield Static(id="action-result")
 
     def on_mount(self) -> None:
         self.query_one(DataTable).add_columns("Name", "Flags", "Description")
         self.actions: dict[str, dict] = {}
+        self.steam: dict | None = None
         super().on_mount()
+
+    def show_steam(self, steam: dict) -> None:
+        self.steam = steam
+        self.query_one("#steam-status", Static).update(f"[b]Steam[/]  {status_text(steam['state'])}  {escape(steam['message'])}")
+
+    @work(exclusive=True, group="steam")
+    async def load_steam(self) -> None:
+        steam = await self.call(self.scp.api.steam)
+        if steam:
+            self.show_steam(steam)
+
+    def action_toggle_steam(self) -> None:
+        steam = self.steam
+        if not steam or not steam["configured"]:
+            self.notify(steam["message"] if steam else "Steam status is still loading.", severity="warning")
+            return
+        if steam["state"] in STEAM_ACTIVE:
+            self.app.push_screen(
+                ConfirmScreen("Quit Steam", "Steam will close on the server desktop. Save first if a game is running.", "Quit Steam", danger=True),
+                lambda confirmed: self.steam_control("stop") if confirmed else None,
+            )
+        else:
+            self.steam_control("start")
+
+    @work(exclusive=True, group="steam")
+    async def steam_control(self, action: str) -> None:
+        steam = await self.call(self.scp.api.steam_control, action, action == "stop")
+        if steam:
+            self.show_steam(steam)
 
     @work(exclusive=True, group="actions")
     async def reload(self) -> None:
+        self.load_steam()
         actions = await self.call(self.scp.api.actions)
         if actions is None:
             return

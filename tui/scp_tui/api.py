@@ -89,3 +89,10 @@ class Api:
             {"confirmed": confirmed},
             timeout=120,
         )
+
+    def steam(self) -> dict:
+        return self._request("GET", "/api/steam")
+
+    def steam_control(self, action: str, confirmed: bool = False) -> dict:
+        # Stopping waits up to 30 s on the host for Steam to quit cleanly.
+        return self._request("POST", f"/api/steam/{action}", {"confirmed": confirmed}, timeout=90)

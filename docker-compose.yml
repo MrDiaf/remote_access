@@ -34,6 +34,8 @@ services:
       HOST_MEDIA_ROOTS: /host-media:/host-mnt
       HOST_MEDIA_HOST_ROOTS: ${HOST_MEDIA_PATH:-/run/media}:${HOST_MOUNT_PATH:-/mnt}
       HOST_ROOT: /host-root
+      STEAM_CONTROL_SSH_HOST: ${TERMINAL_SSH_HOST:-host.docker.internal}
+      STEAM_CONTROL_SSH_PORT: ${TERMINAL_SSH_PORT:-22}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -59,6 +61,8 @@ services:
         bind:
           propagation: rslave
       - backend-data:/data
+      # SSH key that can only start/stop Steam; see make enable-steam-control.
+      - ./data/steam-control:/steam-control:ro
       - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
 

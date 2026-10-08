@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, status
 
 from .actions import list_actions, run_action
 from .config import (
@@ -25,10 +25,12 @@ from .models import (
     RemoteInputApplyResult,
     RemoteDesktopStatus,
     ServiceStatus,
+    SteamStatus,
     SystemInfo,
 )
 from .remote_status import get_remote_desktop_status
 from .services import list_service_status
+from .steam_control import control_steam, get_steam_status
 from .system_info import get_system_info
 
 
@@ -113,3 +115,21 @@ def run_named_action(
 ) -> ActionRunResult:
     settings = load_dashboard_settings()
     return run_action(action_id, load_actions_config(), settings.allowed_containers, request.confirmed)
+
+
+@app.get("/api/steam", response_model=SteamStatus)
+def steam_status() -> SteamStatus:
+    return get_steam_status()
+
+
+@app.post("/api/steam/start", response_model=SteamStatus)
+def start_steam() -> SteamStatus:
+    return control_steam("start")
+
+
+@app.post("/api/steam/stop", response_model=SteamStatus)
+def stop_steam(request: ActionRunRequest) -> SteamStatus:
+    # Quitting Steam can interrupt a running game.
+    if not request.confirmed:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Confirmation required")
+    return control_steam("stop")

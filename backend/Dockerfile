@@ -5,6 +5,11 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
+# ssh reaches the host's Steam forced command (app/steam_control.py).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openssh-client \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 

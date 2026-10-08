@@ -1,8 +1,11 @@
-import { Play, RefreshCw } from 'lucide-react';
+import { Gamepad2, Play, RefreshCw, Square } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { ApiError, api, type ActionRunResult, type ActionSummary } from '../api/client';
+import { ApiError, api, type ActionRunResult, type ActionSummary, type SteamStatus } from '../api/client';
 import { ConfirmModal } from '../components/ConfirmModal';
+import { StatusBadge } from '../components/StatusBadge';
+
+const STEAM_ACTIVE = ['running', 'starting', 'stopping'];
 
 export function ActionsPage() {
   const [actions, setActions] = useState<ActionSummary[]>([]);
@@ -10,16 +13,40 @@ export function ActionsPage() {
   const [result, setResult] = useState<ActionRunResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [steam, setSteam] = useState<SteamStatus | null>(null);
+  const [steamBusy, setSteamBusy] = useState(false);
+  const [confirmSteamStop, setConfirmSteamStop] = useState(false);
 
   async function load() {
     setBusy(true);
     setError(null);
+    void loadSteam();
     try {
       setActions(await api.actions());
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Unable to load actions');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function loadSteam() {
+    try {
+      setSteam(await api.steam());
+    } catch (err) {
+      setSteam({ configured: true, state: 'error', message: err instanceof ApiError ? err.message : 'Unable to reach the backend' });
+    }
+  }
+
+  async function controlSteam(action: 'start' | 'stop') {
+    setSteamBusy(true);
+    try {
+      setSteam(await api.steamControl(action, action === 'stop'));
+      setConfirmSteamStop(false);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : `Unable to ${action} Steam`);
+    } finally {
+      setSteamBusy(false);
     }
   }
 
@@ -40,6 +67,15 @@ export function ActionsPage() {
   useEffect(() => {
     void load();
   }, []);
+
+  // Steam starts and quits on its own schedule; keep the card current.
+  useEffect(() => {
+    if (steamBusy) return undefined;
+    const timer = window.setInterval(() => void loadSteam(), 10000);
+    return () => window.clearInterval(timer);
+  }, [steamBusy]);
+
+  const steamActive = steam ? STEAM_ACTIVE.includes(steam.state) : false;
 
   return (
     <div className="page">
@@ -63,6 +99,38 @@ export function ActionsPage() {
       ) : null}
 
       <div className="actionList">
+        <section className="actionItem">
+          <div>
+            <div className="actionTitle">
+              <Gamepad2 size={18} aria-hidden="true" />
+              <strong>Steam</strong>
+              {steam ? <StatusBadge status={steam.state} /> : null}
+            </div>
+            <p>{steam ? steam.message : 'Checking Steam…'}</p>
+          </div>
+          {steamActive ? (
+            <button
+              className="button danger"
+              type="button"
+              disabled={steamBusy || steam?.state === 'stopping'}
+              onClick={() => setConfirmSteamStop(true)}
+            >
+              <Square size={16} aria-hidden="true" />
+              Stop
+            </button>
+          ) : (
+            <button
+              className="button primary"
+              type="button"
+              disabled={steamBusy || !steam?.configured}
+              onClick={() => void controlSteam('start')}
+            >
+              <Play size={16} aria-hidden="true" />
+              {steamBusy ? 'Starting…' : 'Start'}
+            </button>
+          )}
+        </section>
+
         {actions.map((action) => (
           <section className="actionItem" key={action.id}>
             <div>
@@ -87,6 +155,17 @@ export function ActionsPage() {
           </section>
         ))}
       </div>
+
+      {confirmSteamStop ? (
+        <ConfirmModal
+          title="Quit Steam"
+          message="Steam will close on the server desktop. Save first if a game is running."
+          confirmLabel="Quit Steam"
+          busy={steamBusy}
+          onCancel={() => setConfirmSteamStop(false)}
+          onConfirm={() => void controlSteam('stop')}
+        />
+      ) : null}
 
       {pending ? (
         <ConfirmModal

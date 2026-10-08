@@ -73,3 +73,17 @@ if command -v systemctl >/dev/null 2>&1; then
     printf "info: gnome-remote-desktop is not enabled for this user; run make enable-physical-screen\n"
   fi
 fi
+
+section "Steam control (optional)"
+if [ ! -x /usr/games/steam ] && [ ! -x /snap/bin/steam ]; then
+  printf "info: Steam is not installed; the dashboard Steam card stays disabled\n"
+elif [ ! -f data/steam-control/id_ed25519 ] || ! grep -q " scp-steam-control\$" "$HOME/.ssh/authorized_keys" 2>/dev/null; then
+  printf "info: Steam control is not set up; run make enable-steam-control\n"
+else
+  printf "ok: the dashboard key may start and quit Steam\n"
+  if systemctl --user show-environment 2>/dev/null | grep -Eq '^(DISPLAY|WAYLAND_DISPLAY)='; then
+    printf "ok: a desktop session is running, so Steam has a screen to open on\n"
+  else
+    printf "info: no desktop session right now; Steam can start only after someone logs in\n"
+  fi
+fi
