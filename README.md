@@ -199,9 +199,13 @@ server mounts them elsewhere.
 
 The **Network** page records how good the connection is, around the clock, so
 you can show your internet provider when it failed. The backend pings your
-router, Cloudflare (`1.1.1.1`), and Google (`8.8.8.8`) once a second. That is
-about 250 bytes per second in total; it never runs speed tests. Thirty days
-are kept.
+router, Cloudflare (`1.1.1.1`), Google (`8.8.8.8`), and a Tailscale relay
+server once a second. That is about 350 bytes per second in total; it never
+runs speed tests. Thirty days are kept.
+
+The Tailscale relay is the one with the lowest ping. To use the relay
+Tailscale itself picks, run `tailscale netcheck`, then put its "Nearest DERP"
+region code in `.env`, for example `NETMON_TAILSCALE=ams`, and run `make up`.
 
 - Graphs of packet loss and latency for the last 24 hours, 7 days, or 30 days.
 - **Problems** lists every period with 10% or more packet loss to the

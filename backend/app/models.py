@@ -186,6 +186,7 @@ class NetworkTarget(BaseModel):
     host: str
     # False for the home router; True for the internet targets.
     internet: bool
+    note: str | None = None
 
 
 class NetworkPoint(BaseModel):

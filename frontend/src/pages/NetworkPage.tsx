@@ -10,8 +10,8 @@ const RANGES = [
   { hours: 24 * 30, label: '30 days' }
 ];
 
-// Categorical slots 1-3 (validated together: CVD and normal-vision separation pass).
-const SERIES_COLORS = ['var(--series-1)', 'var(--series-2)', 'var(--series-3)'];
+// Categorical slots 1-4 in fixed order (validated together for line charts).
+const SERIES_COLORS = ['var(--series-1)', 'var(--series-2)', 'var(--series-3)', 'var(--series-4)'];
 
 function lossTone(loss: number) {
   if (loss < 1) return { tone: 'good', label: 'Good', Icon: CheckCircle2 };
@@ -136,7 +136,7 @@ export function NetworkPage() {
 
           <div className="statsGrid">
             {[
-              { label: 'Internet packet loss', loss: internetLoss, detail: `Cloudflare and Google · avg ${ms(internetAvg)}` },
+              { label: 'Internet packet loss', loss: internetLoss, detail: `${data.targets.filter((target) => target.internet).map((target) => target.label).join(', ')} · avg ${ms(internetAvg)}` },
               ...(router ? [{ label: 'Router packet loss', loss: router.loss, detail: `Home network · avg ${ms(router.avg_ms)}` }] : [])
             ].map((stat) => {
               const { tone, label, Icon } = lossTone(stat.loss);
@@ -172,7 +172,11 @@ export function NetworkPage() {
               {data.targets.map((target, index) => (
                 <span key={target.id}>
                   <span className="chartKey" style={{ background: SERIES_COLORS[index % SERIES_COLORS.length] }} />
-                  {target.label} <span className="subtle">{target.host}</span>
+                  {target.label}{' '}
+                  <span className="subtle">
+                    {target.host === '-' ? '' : target.host}
+                    {target.note ? `${target.host === '-' ? '' : ' · '}${target.note}` : ''}
+                  </span>
                 </span>
               ))}
             </div>

@@ -20,10 +20,11 @@
   --warning: #a15c07;
   --success: #1f7a4d;
   --shadow: 0 12px 30px rgba(23, 32, 38, 0.08);
-  /* Chart series, categorical slots 1-3 (validated as a set on #fff). */
+  /* Chart series, categorical slots 1-4 (validated as a set on #fff). */
   --series-1: #2a78d6;
   --series-2: #eb6834;
   --series-3: #1baf7a;
+  --series-4: #eda100;
 }
 
 * {

@@ -646,7 +646,11 @@ class NetworkTab(Page):
             loss = item["loss"]
             color = "green" if loss < 1 else "yellow" if loss < 5 else "red"
             table.add_row(
-                escape(target["label"]), escape(target["host"]), f"[{color}]{loss:.2f}%[/]", ms(item["avg_ms"]), ms(item["max_ms"])
+                escape(target["label"]),
+                escape(target["host"] + (f" ({target['note']})" if target.get("note") else "")),
+                f"[{color}]{loss:.2f}%[/]" if item["sent"] else "[dim]no data[/]",
+                ms(item["avg_ms"]),
+                ms(item["max_ms"]),
             )
 
         internet = [target["id"] for target in data["targets"] if target["internet"]]

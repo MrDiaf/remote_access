@@ -27,11 +27,18 @@ volume.
   per 30 s: sent, received, average/max latency, and jitter (mdev).
   - If ping fails at once (for example "Network is unreachable"), the window
     counts as 100% loss.
-  - About 84 bytes per ping each way, for three targets: roughly 250 B/s.
+  - About 84 bytes per ping each way, for four targets: roughly 350 B/s.
 - Targets:
   - the host's default gateway (router), read from
     `/host-root/proc/1/net/route` (`NETMON_GATEWAY` overrides);
-  - Cloudflare `1.1.1.1` and Google `8.8.8.8`.
+  - Cloudflare `1.1.1.1` and Google `8.8.8.8`;
+  - a Tailscale relay (DERP) server, added 2026-10-09 because the user mostly
+    reaches the server through Tailscale. The relay comes from Tailscale's
+    public DERP map: by default the region with the lowest ping, re-picked
+    daily and retried every 5 minutes while the map is unreachable.
+    `NETMON_TAILSCALE` in `.env` pins a region code (such as `ams`, as in
+    `tailscale netcheck`), takes a host, or turns it `off`. Tailscale's own
+    choice can differ from the lowest ping (here, Amsterdam vs Helsinki).
   - Router loss separates home-network trouble from provider trouble.
 - Storage: SQLite `network.sqlite3` in the backend data volume (WAL). Rows
   older than 30 days are deleted as new ones arrive.
@@ -76,14 +83,19 @@ volume.
 
 - [x] `make test`: ping parsing, gateway detection, buckets, problem periods
       with the home/provider verdict, report text, and the TUI Network tab
-- [x] The live backend records the router (192.168.0.1), 1.1.1.1, and 8.8.8.8
-      every 30 s, and the report shows the real numbers
+- [x] The live backend records the router (192.168.0.1), 1.1.1.1, 8.8.8.8,
+      and a Tailscale relay every 30 s, and the report shows the real numbers
 - [x] The page renders 24 h of data on desktop and phone without horizontal overflow
 - [ ] User confirms the Copy button and a multi-day graph on the real server
 
 ## Verification
 
-- `make test`: 25 backend and 14 TUI tests OK.
+- `make test`: 30 backend and 14 TUI tests OK (relay choice, region pin,
+  override, off, "no data" rows).
+- Live: automatic relay = Helsinki (65.109.143.62, about 28 ms ping);
+  `NETMON_TAILSCALE=ams` → Amsterdam (176.58.93.248), Tailscale's own
+  preferred region on this machine. The four-color palette passes the dataviz
+  validator (adjacent CVD ΔE 9.1, normal-vision 22.9).
 - Live: `/api/network?hours=1` lists the three targets and real samples;
   `/api/network/report` matches them, with times in CEST.
 - A throwaway backend plus proxy with 26 h of synthetic data (a 10-minute

@@ -137,6 +137,7 @@ export type NetworkTarget = {
   label: string;
   host: string;
   internet: boolean;
+  note: string | null;
 };
 
 export type NetworkPoint = {

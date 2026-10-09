@@ -8,6 +8,7 @@ days, so the graphs and the copy-paste report cover past problems.
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import re
@@ -17,7 +18,10 @@ import struct
 import subprocess
 import threading
 import time
+import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import Callable
 
 from .models import NetworkEvent, NetworkHistory, NetworkPoint, NetworkReport, NetworkTarget, NetworkTargetSummary
 
@@ -35,7 +39,13 @@ MAX_POINTS = 300
 SUMMARY = re.compile(r"(\d+) packets transmitted, (\d+) received")
 RTT = re.compile(r"= ([\d.]+)/([\d.]+)/([\d.]+)/([\d.]+) ms")
 
+# Tailscale's public list of its relay (DERP) servers.
+TAILSCALE_DERP_MAP = "https://controlplane.tailscale.com/derpmap/default"
+TAILSCALE_RECHECK = 24 * 3600  # look for the nearest relay again once a day
+TAILSCALE_RETRY = 300  # retry interval while the list cannot be fetched
+
 _started = False
+_tailscale: NetworkTarget | None = None  # the nearest relay, once found
 
 
 def host_gateway() -> str | None:
@@ -61,7 +71,60 @@ def targets() -> list[NetworkTarget]:
         found.append(NetworkTarget(id="router", label="Router", host=gateway, internet=False))
     found.append(NetworkTarget(id="cloudflare", label="Cloudflare", host="1.1.1.1", internet=True))
     found.append(NetworkTarget(id="google", label="Google", host="8.8.8.8", internet=True))
+    if os.environ.get("NETMON_TAILSCALE", "").strip().lower() != "off":
+        found.append(
+            _tailscale or NetworkTarget(id="tailscale", label="Tailscale", host="-", internet=True, note="finding the nearest relay")
+        )
     return found
+
+
+def _quick_ping(host: str) -> float | None:
+    try:
+        completed = subprocess.run(
+            ["ping", "-n", "-q", "-c", "2", "-i", "0.2", "-W", "2", host], capture_output=True, text=True, timeout=10
+        )
+    except subprocess.TimeoutExpired:
+        return None
+    parsed = parse_ping(completed.stdout)
+    return parsed[2] if parsed else None
+
+
+def choose_relay(derp_map: dict, measure: Callable[[str], float | None], region_code: str | None = None) -> NetworkTarget | None:
+    """The Tailscale relay region with the lowest latency (or the given region), as a ping target."""
+    candidates = []
+    for region in derp_map.get("Regions", {}).values():
+        if region_code and region.get("RegionCode") != region_code:
+            continue
+        if region.get("Avoid") and not region_code:
+            continue
+        node = next((n for n in region.get("Nodes", []) if n.get("IPv4") and not n.get("STUNOnly")), None)
+        if node:
+            candidates.append((region.get("RegionName", region.get("RegionCode", "?")), node["IPv4"]))
+    if not candidates:
+        return None
+    with ThreadPoolExecutor(max_workers=16) as pool:
+        latencies = list(pool.map(lambda candidate: measure(candidate[1]), candidates))
+    measured = [(ms, name, ip) for (name, ip), ms in zip(candidates, latencies) if ms is not None]
+    if not measured:
+        return None
+    _, name, ip = min(measured)
+    note = f"relay: {name}" if region_code else f"nearest relay: {name}"
+    return NetworkTarget(id="tailscale", label="Tailscale", host=ip, internet=True, note=note)
+
+
+def nearest_tailscale_relay() -> NetworkTarget | None:
+    """NETMON_TAILSCALE: empty/auto = lowest ping, a region code such as `ams`
+    (from `tailscale netcheck`) = that region, anything else = that host."""
+    setting = os.environ.get("NETMON_TAILSCALE", "").strip().lower()
+    region_code = setting if re.fullmatch(r"[a-z]{2,5}", setting) and setting not in ("auto", "off") else None
+    if setting and setting not in ("auto", "off") and not region_code:
+        return NetworkTarget(id="tailscale", label="Tailscale", host=setting, internet=True)
+    try:
+        with urllib.request.urlopen(TAILSCALE_DERP_MAP, timeout=15) as response:
+            derp_map = json.load(response)
+    except (OSError, ValueError):
+        return None
+    return choose_relay(derp_map, _quick_ping, region_code)
 
 
 def _connect() -> sqlite3.Connection:
@@ -109,8 +172,8 @@ def _sample(host: str) -> tuple[int, int, float | None, float | None, float | No
     return parsed
 
 
-def _record_forever(target: NetworkTarget) -> None:
-    while True:
+def _record_forever(target: NetworkTarget, until: float | None = None) -> None:
+    while until is None or time.time() < until:
         ts = int(time.time())
         try:
             sent, received, avg, worst, jitter = _sample(target.host)
@@ -126,6 +189,18 @@ def _record_forever(target: NetworkTarget) -> None:
             time.sleep(SAMPLE_PINGS)
 
 
+def _record_tailscale_forever() -> None:
+    """Find the nearest Tailscale relay (again each day) and record it."""
+    global _tailscale
+    while True:
+        relay = nearest_tailscale_relay()
+        if relay is None:
+            time.sleep(TAILSCALE_RETRY)
+            continue
+        _tailscale = relay
+        _record_forever(relay, until=time.time() + TAILSCALE_RECHECK)
+
+
 def start() -> None:
     """Start one recorder thread per target (once per process)."""
     global _started
@@ -133,7 +208,11 @@ def start() -> None:
         return
     _started = True
     for target in targets():
-        threading.Thread(target=_record_forever, args=(target,), name=f"netmon-{target.id}", daemon=True).start()
+        if target.id == "tailscale":
+            runner, args = _record_tailscale_forever, ()
+        else:
+            runner, args = _record_forever, (target,)
+        threading.Thread(target=runner, args=args, name=f"netmon-{target.id}", daemon=True).start()
 
 
 def _rows(since: int) -> list[tuple]:
@@ -281,12 +360,14 @@ def report(hours: int, server_name: str) -> NetworkReport:
     if data.first_sample > data.since + 300:
         lines.append(f"Measurements start at {_clock(data.first_sample)}.")
 
-    labels = {target.id: f"{target.label} ({target.host})" for target in data.targets}
+    labels = {
+        target.id: f"{target.label} ({target.host}{', ' + target.note if target.note else ''})" for target in data.targets
+    }
     width = max(len(label) for label in labels.values())
     lines += ["", f"{'Target'.ljust(width)}  Packet loss  Avg latency  Worst latency"]
     for item in data.summary:
         lines.append(
-            f"{labels[item.id].ljust(width)}  {f'{item.loss:.2f}%':>11}  {_ms(item.avg_ms):>11}  {_ms(item.max_ms):>13}"
+            f"{labels[item.id].ljust(width)}  {f'{item.loss:.2f}%' if item.sent else 'no data':>11}  {_ms(item.avg_ms):>11}  {_ms(item.max_ms):>13}"
         )
 
     lines += ["", f"Problems (minutes with {EVENT_LOSS:.0f}% or more packet loss to the internet):"]
