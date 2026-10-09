@@ -362,6 +362,11 @@ export function RemoteAccessPage({ settings }: RemoteAccessPageProps) {
               {focusMode ? <Minimize2 size={16} aria-hidden="true" /> : <Maximize2 size={16} aria-hidden="true" />}
               {focusMode ? 'Exit Focus' : 'Focus'}
             </button>
+            {/* Experimental Sunshine + Moonlight-Web stream (make stream-up). */}
+            <a className="button secondary" href="/stream/" target="_blank" rel="noreferrer">
+              <ExternalLink size={16} aria-hidden="true" />
+              Low-latency stream (beta)
+            </a>
             <a className="button primary remoteLaunch large" href={guacamoleUrl} target="_blank" rel="noreferrer">
               <ExternalLink size={18} aria-hidden="true" />
               Open Remote Desktop

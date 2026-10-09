@@ -67,6 +67,16 @@ Steam control. "n" is remembered in `data/host-setup.skip`; `make setup-host`
 asks again. New one-time host steps belong in that script, not in a separate
 README instruction. GNOME automatic login is only pointed out, never changed.
 
+Experiment on the `exp` branch (2026-10-09, milestone 06): Sunshine on the
+host plus Moonlight-Web (`moonlight-web` service, `stream` profile, `/stream/`)
+as a lower-latency alternative to Guacamole/GNOME RDP. It was motivated by
+GNOME Remote Desktop logs showing 46 dropped sessions in 72 h, audio that never
+works, and the locked-keyring credential failure after automatic login. The
+Sunshine is installed on the server with KMS capture and NVENC, and pairing
+works. `moonlight-web` uses host networking because Docker NAT let WebRTC
+advertise only one address and Tailscale clients fell back to the slow
+WebSocket path. Low-latency streaming is not confirmed yet. Guacamole stays the default until the user decides.
+
 The next unfinished areas are:
 
 1. a Docker-based development workflow that does not require host npm;

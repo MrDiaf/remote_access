@@ -87,3 +87,29 @@ else
     printf "info: no desktop session right now; Steam can start only after someone logs in\n"
   fi
 fi
+
+section "Sunshine stream (experimental, optional)"
+if ! command -v sunshine >/dev/null 2>&1; then
+  printf "info: Sunshine is not installed; run make install-sunshine to try the low-latency stream\n"
+else
+  if command -v getcap >/dev/null 2>&1 && getcap "$(readlink -f "$(command -v sunshine)")" 2>/dev/null | grep -q cap_sys_admin; then
+    printf "ok: Sunshine can capture the screen through KMS\n"
+  else
+    printf "info: Sunshine has no cap_sys_admin, so it falls back to portal capture (asks on screen once)\n"
+  fi
+  if [ "$(systemctl --user is-active app-dev.lizardbyte.app.Sunshine.service 2>/dev/null)" = "active" ]; then
+    printf "ok: Sunshine user service is running\n"
+  else
+    printf "warn: Sunshine is not running; start it with: systemctl --user enable --now app-dev.lizardbyte.app.Sunshine.service\n"
+  fi
+  if ss -ltn 2>/dev/null | awk '{print $4}' | grep -Eq "[:.]47989$"; then
+    printf "ok: Sunshine listens on TCP 47989 for pairing\n"
+  else
+    printf "warn: nothing listens on TCP 47989\n"
+  fi
+  if [ "$(docker inspect -f '{{.State.Status}}' scp-moonlight-web 2>/dev/null)" = "running" ]; then
+    printf "ok: Moonlight-Web is running at /stream/\n"
+  else
+    printf "info: Moonlight-Web is not running; run make stream-up\n"
+  fi
+fi

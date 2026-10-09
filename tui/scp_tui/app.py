@@ -205,7 +205,8 @@ class RemoteTab(Page):
             self.query_one("#remote-intro", Static).update(
                 f"[b]{escape(status['protocol'])} via Guacamole to {escape(status['rdp_host'])}:{status['rdp_port']}[/b]\n"
                 f"{escape(status['connection_hint'])}\n\n"
-                f"The desktop picture needs a browser: [u]{escape(url)}[/u]"
+                f"The desktop picture needs a browser: [u]{escape(url)}[/u]\n"
+                f"Experimental low-latency stream (Sunshine): [u]{escape(self.scp.dashboard_url)}/stream/[/u]"
             )
             table = self.query_one("#remote-status", DataTable)
             table.clear()

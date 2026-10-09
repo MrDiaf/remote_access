@@ -78,6 +78,17 @@ Status: implemented; waiting for confirmation on the real server.
 - [x] `make test` still passes
 - [ ] On the real server, one `make up` finishes setup and the phone reaches the desktop
 
+## Milestone 06 — Experimental Sunshine + Moonlight-Web stream (`guidelines/milestones/06-sunshine-stream-experiment.md`)
+
+Status: in progress (experiment on the `exp` branch).
+
+- [x] Moonlight-Web served at `/stream/`
+- [x] `make install-sunshine` installs and starts Sunshine
+- [ ] Moonlight-Web pairs with Sunshine
+- [ ] Physical screen streams with keyboard, mouse and audio
+- [ ] Works from a phone
+- [ ] User decides whether to keep it
+
 ## Backlog (no milestone file yet)
 
 These are described in `handoff.md` under "Known Unfinished Work". Write a

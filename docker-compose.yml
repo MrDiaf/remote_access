@@ -10,6 +10,9 @@ services:
       - terminal
     ports:
       - "${DASHBOARD_BIND:-0.0.0.0}:${DASHBOARD_HTTP_PORT:-8080}:80"
+    extra_hosts:
+      # /stream is served by Moonlight-Web on the host network.
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./proxy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
@@ -99,6 +102,34 @@ services:
     volumes:
       - tui-ssh:/home/tui/.ssh
 
+  # Experimental low-latency browser stream of the physical screen. Sunshine
+  # runs on the host (make install-sunshine); this relays it to the browser
+  # over WebRTC. Started with `make stream-up`; it has its own login.
+  moonlight-web:
+    image: mrcreativ3001/moonlight-web-stream:v2.10.0
+    container_name: scp-moonlight-web
+    profiles:
+      - stream
+    # Host networking: WebRTC offers every host address (LAN and Tailscale)
+    # as a candidate. Behind Docker NAT it could advertise only one, so
+    # Tailscale clients fell back to the slow WebSocket path.
+    network_mode: host
+    environment:
+      # Only Caddy (through the Docker bridge gateway) reaches the web UI;
+      # browsers use http://server-ip:8080/stream/.
+      BIND_ADDRESS: ${STREAM_BIND:-172.17.0.1}:8091
+      PATH_PREFIX: /stream
+      WEBRTC_PORT_RANGE: "40000:40010"
+      WEBRTC_NETWORK_TYPES: udp4
+      # LAN/VPN only: do not ask public STUN servers for an address.
+      DISABLE_DEFAULT_WEBRTC_ICE_SERVERS: "true"
+    extra_hosts:
+      # Keeps the already-paired host address host.docker.internal working.
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - moonlight-web-data:/moonlight-web/server
+    restart: unless-stopped
+
   portainer:
     image: portainer/portainer-ce:latest
     container_name: scp-portainer
@@ -161,6 +192,7 @@ volumes:
   backend-data:
   terminal-ssh:
   tui-ssh:
+  moonlight-web-data:
   caddy-data:
   caddy-config:
   portainer-data:

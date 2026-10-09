@@ -13,6 +13,13 @@
 		reverse_proxy terminal:7681
 	}
 
+	# Moonlight-Web uses relative asset paths, so it needs the trailing slash.
+	redir /stream /stream/ 308
+
+	handle /stream* {
+		reverse_proxy host.docker.internal:8091
+	}
+
 	handle /guacamole* {
 		reverse_proxy guacamole:8080
 	}

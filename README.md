@@ -223,6 +223,42 @@ for confirmation and closes Steam cleanly; it never force-kills a running game.
 To revoke access, delete the line ending in `scp-steam-control` from
 `~/.ssh/authorized_keys`.
 
+## Low-Latency Stream (Experimental)
+
+An alternative to Guacamole for the physical screen. [Sunshine](https://github.com/LizardByte/Sunshine)
+runs on the server, captures the real GNOME screen (KMS), and encodes it on
+the GPU. [Moonlight-Web](https://github.com/MrCreativ3001/moonlight-web-stream)
+sends it to the browser over WebRTC, with audio. Guacamole keeps working next
+to it, so you can compare the two.
+
+Set it up once:
+
+```sh
+make install-sunshine   # installs the pinned official package (sudo) and starts it
+```
+
+1. On the server, open `https://localhost:47990` (accept the self-signed
+   certificate) and create the Sunshine admin login.
+2. Run `make stream-up` and open `http://server-ip:8080/stream/`. **The first
+   login there creates the Moonlight-Web admin account**, so do it right away.
+3. Add a host with address `host.docker.internal`, click it to pair, and
+   enter the PIN it shows in Sunshine's web UI (**PIN** tab).
+4. Click the host, then **Desktop**.
+
+The dashboard's Remote Desktop page links to it as **Low-latency stream
+(beta)**. `make doctor` checks Sunshine, and `make stream-down` stops the
+relay.
+
+Limits of the experiment:
+
+- Plain HTTP only, so browsers block Keyboard Lock (Super/Alt-Tab capture)
+  and gamepads. These need HTTPS, which is a later step.
+- Media goes over UDP 40000–40010 directly to the server's LAN or Tailscale
+  address. Moonlight-Web uses host networking so it can offer both. If WebRTC
+  cannot connect, it falls back to WebSockets, which is much slower over
+  plain HTTP.
+- Remove it with `make stream-down` and `sudo apt remove sunshine`.
+
 ## Remote Desktop In Detail
 
 Use **GNOME Remote Desktop over RDP** to control the actual logged-in Ubuntu
@@ -498,6 +534,8 @@ xrdp/XFCE is useful for headless management, but it usually does not show the ex
 | `make check-remote` | Check only the Guacamole-to-RDP path |
 | `make apply-remote-input` | Reapply the saved remote keyboard layout to Guacamole |
 | `make test` | Run backend and TUI tests in containers |
+| `make install-sunshine` | Experimental: install and start Sunshine on the host (sudo) |
+| `make stream-up` / `make stream-down` | Experimental: start/stop Moonlight-Web at `/stream/` |
 | `make backup` | Archive config, data, and `.env` into `backups/` |
 
 `make shutdown` and `make maintenance-stop` are older names for `make down`.

@@ -8,7 +8,7 @@ GUACAMOLE_VERSION ?= 1.6.0
 BACKUP_DIR ?= backups
 BACKUP_FILE ?= $(BACKUP_DIR)/server-control-panel-$$(date +%Y%m%d-%H%M%S).tar.gz
 
-.PHONY: help setup env setup-host up tui down shutdown maintenance-stop refresh restart build logs ps status doctor test preflight remote-up remote-down apply-remote-input guacamole-init check-remote install-host-remote-desktop enable-physical-screen enable-steam-control data-dirs backend-shell frontend-shell db-shell clean backup restore
+.PHONY: help setup env setup-host up tui stream-up stream-down install-sunshine down shutdown maintenance-stop refresh restart build logs ps status doctor test preflight remote-up remote-down apply-remote-input guacamole-init check-remote install-host-remote-desktop enable-physical-screen enable-steam-control data-dirs backend-shell frontend-shell db-shell clean backup restore
 
 help:
 	@printf "server-control-panel commands\n\n"
@@ -28,6 +28,10 @@ help:
 	@printf "  make remote-up         Start only Guacamole, guacd, and PostgreSQL\n"
 	@printf "  make remote-down       Stop only the Guacamole stack\n"
 	@printf "  make test              Run backend and TUI tests in containers\n\n"
+	@printf "Experimental: Sunshine + Moonlight-Web stream\n"
+	@printf "  make install-sunshine  Install Sunshine on the host and start it (uses sudo)\n"
+	@printf "  make stream-up         Start Moonlight-Web at /stream/\n"
+	@printf "  make stream-down       Stop Moonlight-Web\n\n"
 	@printf "Single setup steps (make up already offers these)\n"
 	@printf "  make setup-host        Ask again about every host step, even ones you skipped\n"
 	@printf "  make setup             Only create .env and the Guacamole schema\n"
@@ -93,8 +97,39 @@ tui: preflight
 	ip=$$(hostname -I 2>/dev/null | awk '{print $$1}'); ip=$${ip:-localhost}; \
 	SCP_DASHBOARD_URL="http://$$ip:$$port" $(COMPOSE) --profile tui run --rm --build tui
 
+# Moonlight-Web runs on the host network so WebRTC can offer LAN and Tailscale
+# addresses. Its web UI binds to the Docker bridge gateway, reachable only
+# through Caddy.
+stream-up: preflight
+	@bind=$$(docker network inspect bridge -f '{{(index .IPAM.Config 0).Gateway}}' 2>/dev/null); \
+	port=$$(sed -n 's/^DASHBOARD_HTTP_PORT=//p' .env | tail -n 1); port=$${port:-8080}; \
+	ip=$$(hostname -I 2>/dev/null | awk '{print $$1}'); \
+	STREAM_BIND="$${bind:-172.17.0.1}" $(COMPOSE) --profile stream up -d --wait --wait-timeout 120 moonlight-web reverse-proxy && \
+	docker exec scp-proxy caddy reload --config /etc/caddy/Caddyfile >/dev/null 2>&1; \
+	printf "\nMoonlight-Web: http://%s:%s/stream/\nWebRTC media: UDP 40000-40010 on every host address (LAN, Tailscale)\n" "$$ip" "$$port"
+
+stream-down:
+	$(COMPOSE) --profile stream stop moonlight-web
+
+# Run as your desktop user, not with sudo: Sunshine is a service in your GNOME
+# session. KMS capture avoids GNOME's on-screen "Allow remote desktop" prompt,
+# which otherwise blocks Sunshine's startup until someone clicks it.
+install-sunshine:
+	@if [ "$$(id -u)" -eq 0 ]; then printf "Run as your normal user: make install-sunshine (it asks for sudo itself)\n" >&2; exit 1; fi
+	sudo ./scripts/install-sunshine-ubuntu.sh
+	@mkdir -p "$$HOME/.config/sunshine"
+	@conf="$$HOME/.config/sunshine/sunshine.conf"; \
+	if ! grep -q '^capture *=' "$$conf" 2>/dev/null; then \
+		printf "capture = kms\nencoder = nvenc\n" >> "$$conf"; \
+		printf "Set Sunshine to KMS capture with NVENC in %s\n" "$$conf"; \
+	fi
+	XDG_RUNTIME_DIR=$${XDG_RUNTIME_DIR:-/run/user/$$(id -u)} systemctl --user daemon-reload
+	XDG_RUNTIME_DIR=$${XDG_RUNTIME_DIR:-/run/user/$$(id -u)} systemctl --user enable --now app-dev.lizardbyte.app.Sunshine.service
+	@printf "\nSunshine is running. Open https://localhost:47990 on the server once to\n"
+	@printf "create its admin login, then run: make stream-up\n"
+
 down:
-	$(COMPOSE) down
+	$(COMPOSE) --profile stream down
 
 shutdown maintenance-stop: down
 
