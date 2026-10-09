@@ -1,11 +1,11 @@
-import { Gamepad2, Play, RefreshCw, Square } from 'lucide-react';
+import { Gamepad2, Monitor, Play, RefreshCw, Square, Tv } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { ApiError, api, type ActionRunResult, type ActionSummary, type SteamStatus } from '../api/client';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { StatusBadge } from '../components/StatusBadge';
 
-const STEAM_ACTIVE = ['running', 'starting', 'stopping'];
+const STEAM_ACTIVE = ['running', 'starting', 'stopping', 'needs setup'];
 
 export function ActionsPage() {
   const [actions, setActions] = useState<ActionSummary[]>([]);
@@ -38,7 +38,7 @@ export function ActionsPage() {
     }
   }
 
-  async function controlSteam(action: 'start' | 'stop') {
+  async function controlSteam(action: 'start' | 'bigpicture' | 'stop') {
     setSteamBusy(true);
     try {
       setSteam(await api.steamControl(action, action === 'stop'));
@@ -108,28 +108,72 @@ export function ActionsPage() {
             </div>
             <p>{steam ? steam.message : 'Checking Steam…'}</p>
           </div>
-          {steamActive ? (
+          <div className="rowActions">
+            {steamActive ? null : (
+              <button
+                className="button primary"
+                type="button"
+                disabled={steamBusy || !steam?.configured}
+                onClick={() => void controlSteam('start')}
+              >
+                <Play size={16} aria-hidden="true" />
+                Start
+              </button>
+            )}
             <button
-              className="button danger"
+              className={steamActive ? 'button primary' : 'button secondary'}
               type="button"
-              disabled={steamBusy || steam?.state === 'stopping'}
-              onClick={() => setConfirmSteamStop(true)}
+              disabled={steamBusy || !steam?.configured || steam?.state === 'stopping' || steam?.state === 'needs setup'}
+              onClick={() => void controlSteam('bigpicture')}
             >
-              <Square size={16} aria-hidden="true" />
-              Stop
+              <Tv size={16} aria-hidden="true" />
+              Big Picture
             </button>
-          ) : (
-            <button
-              className="button primary"
-              type="button"
-              disabled={steamBusy || !steam?.configured}
-              onClick={() => void controlSteam('start')}
-            >
-              <Play size={16} aria-hidden="true" />
-              {steamBusy ? 'Starting…' : 'Start'}
-            </button>
-          )}
+            {steamActive ? (
+              <button
+                className="button danger"
+                type="button"
+                disabled={steamBusy || steam?.state === 'stopping'}
+                onClick={() => setConfirmSteamStop(true)}
+              >
+                <Square size={16} aria-hidden="true" />
+                Stop
+              </button>
+            ) : null}
+          </div>
         </section>
+
+        <details className="panel steamGuide">
+          <summary>Play on your phone, TV, or another PC (Steam Remote Play)</summary>
+          <ol>
+            <li>
+              Start Steam above. <strong>Big Picture</strong> is the easiest view for a controller or TV. The first
+              time, open the remote desktop and sign in to Steam on the server.
+            </li>
+            <li>
+              In Steam on the server, open <strong>Settings › Remote Play</strong> and make sure{' '}
+              <strong>Enable Remote Play</strong> is on.
+            </li>
+            <li>
+              <strong>Phone, tablet, or TV:</strong> install the Steam Link app and sign in with the same Steam
+              account, then pick this server. The app shows a 4-digit PIN. Type it into the box Steam shows on
+              the server, using the remote desktop. If no box appears, use{' '}
+              <strong>Settings › Remote Play › Pair Steam Link</strong>.
+            </li>
+            <li>
+              <strong>Another PC:</strong> sign in to Steam with the same account. Games installed on the server
+              show <strong>Stream</strong> instead of Install.
+            </li>
+          </ol>
+          <p>
+            Away from home, Steam connects through its own servers, so nothing else needs to be set up. If the
+            stream shows a black screen, start the game directly instead of streaming the desktop or Big Picture.
+          </p>
+          <a className="button secondary" href="#remote">
+            <Monitor size={16} aria-hidden="true" />
+            Open remote desktop
+          </a>
+        </details>
 
         {actions.map((action) => (
           <section className="actionItem" key={action.id}>

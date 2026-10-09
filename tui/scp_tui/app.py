@@ -474,15 +474,21 @@ class DockerTab(Page):
             self.reload()
 
 
-STEAM_ACTIVE = {"running", "starting", "stopping"}
+STEAM_ACTIVE = {"running", "starting", "stopping", "needs setup"}
+REMOTE_PLAY_GUIDE = (
+    "Remote Play: start Steam (b = Big Picture, best for a controller or TV) and sign in once via the remote desktop. "
+    "On a phone or TV install Steam Link, sign in with the same account, pick this server, and type its PIN into Steam "
+    "on the server (Settings > Remote Play > Pair Steam Link). On another PC, sign in to Steam: server games show Stream."
+)
 
 
 class ActionsTab(Page):
-    BINDINGS = [Binding("s", "toggle_steam", "Start/quit Steam")]
+    BINDINGS = [Binding("s", "toggle_steam", "Start/quit Steam"), Binding("b", "steam_big_picture", "Steam Big Picture")]
 
     def compose(self) -> ComposeResult:
         yield Static(id="steam-status")
-        yield Static("Enter runs the selected action. s starts or quits Steam.", classes="intro")
+        yield Static(REMOTE_PLAY_GUIDE, classes="intro")
+        yield Static("Enter runs the selected action. s starts or quits Steam, b opens Big Picture.", classes="intro")
         yield DataTable(id="actions-table", cursor_type="row", zebra_stripes=True)
         yield Static(id="action-result")
 
@@ -514,6 +520,13 @@ class ActionsTab(Page):
             )
         else:
             self.steam_control("start")
+
+    def action_steam_big_picture(self) -> None:
+        steam = self.steam
+        if not steam or not steam["configured"]:
+            self.notify(steam["message"] if steam else "Steam status is still loading.", severity="warning")
+            return
+        self.steam_control("bigpicture")
 
     @work(exclusive=True, group="steam")
     async def steam_control(self, action: str) -> None:

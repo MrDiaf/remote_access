@@ -50,8 +50,11 @@ so `make up` never starts it. Its keyboard layout lists duplicate
 `frontend/src/remoteInputOptions.ts`. When a browser page gains a feature,
 add it to the matching TUI tab and to `tui/tests/test_tui.py`.
 
-Added on 2026-10-09: a Steam card on the Actions page (and `s` on the TUI
-Actions tab) starts Steam on the logged-in desktop and quits it cleanly. The
+Added on 2026-10-09: Steam Remote Play support. A Steam card on the Actions
+page (and `s`/`b` on the TUI Actions tab) starts Steam on the logged-in
+desktop, normally or in Big Picture, and quits it cleanly. A collapsible guide
+explains Steam Link pairing; streaming away from home uses Steam's relay, and
+no ports are opened. GNOME Wayland can stream black video; see milestone 06. The
 backend SSHes to the host with a key that `authorized_keys` pins to
 `scripts/host/steam-control.sh` (status/start/stop only). `make up` offers to
 set it up when Steam is installed. This is unverified on the real server.

@@ -50,6 +50,13 @@ class SteamControlTest(unittest.TestCase):
         self.assertFalse(run.call_args.kwargs["shell"])
         self.assertEqual(status.state, "starting")
 
+    def test_big_picture_is_allowed(self):
+        self.configure()
+        completed = subprocess.CompletedProcess([], 0, stdout="running\n", stderr="")
+        with mock.patch("subprocess.run", return_value=completed) as run:
+            self.assertEqual(steam_control.control_steam("bigpicture").state, "running")
+        self.assertEqual(run.call_args.args[0][-1], "bigpicture")
+
     def test_rejects_other_verbs(self):
         self.configure()
         with mock.patch("subprocess.run") as run:
@@ -65,6 +72,7 @@ class SteamControlTest(unittest.TestCase):
         self.assertEqual(steam_control.parse_result(0, "stopping").state, "stopping")
         self.assertEqual(steam_control.parse_result(3, "no-session: nobody is logged in").state, "no desktop")
         self.assertEqual(steam_control.parse_result(4, "missing: /usr/games/steam is not installed").state, "not installed")
+        self.assertEqual(steam_control.parse_result(0, "setup-needed: finish install").state, "needs setup")
         self.assertEqual(steam_control.parse_result(255, "Connection refused").state, "unreachable")
         self.assertEqual(steam_control.parse_result(2, "refused: only status").state, "error")
 
@@ -75,8 +83,8 @@ class HostForcedCommandTest(unittest.TestCase):
         env = dict(os.environ, SSH_ORIGINAL_COMMAND=command, STEAM_BIN="/nonexistent/steam")
         return subprocess.run(["sh", str(HOST_SCRIPT)], env=env, capture_output=True, text=True, timeout=10)
 
-    def test_refuses_anything_but_the_three_verbs(self):
-        for command in ["", "bash", "rm -rf /", "status; reboot", "start now", "STOP"]:
+    def test_refuses_anything_but_the_allowed_verbs(self):
+        for command in ["", "bash", "rm -rf /", "status; reboot", "start now", "STOP", "bigpicture -x"]:
             with self.subTest(command=command):
                 result = self.run_script(command)
                 self.assertEqual(result.returncode, 2)

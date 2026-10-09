@@ -197,8 +197,22 @@ server mounts them elsewhere.
 
 ## Steam
 
-The **Actions** page has a Steam card that shows whether Steam is running and
-lets you start it or quit it. In the TUI, press `s` on the Actions tab. When
+Play the server's games on your phone, TV, or another PC with Steam Remote
+Play. The **Actions** page has a Steam card that shows whether Steam is
+running and lets you start it, start it in **Big Picture** (best for a
+controller or TV), or quit it. In the TUI, press `s` (start/quit) or `b` (Big
+Picture) on the Actions tab.
+
+Open **Play on your phone, TV, or another PC** under the card for the pairing
+steps. In short: sign in to Steam on the server once through the remote
+desktop; install the Steam Link app on the phone or TV and sign in with the
+same account; then type the app's 4-digit PIN into Steam on the server. Away
+from home, Steam connects through its own servers, so no ports are opened.
+
+If the stream shows a black screen, start the game directly instead of
+streaming the desktop or Big Picture. Steam's Remote Play is unreliable on
+GNOME Wayland desktops. If streaming at home is slow and `ufw` is on, allow
+UDP 27031–27036 and TCP 27036–27037 from your home network. When
 Steam is installed, `make up` offers to set this up (or run
 `make enable-steam-control` yourself, as the user who logs in to the desktop).
 

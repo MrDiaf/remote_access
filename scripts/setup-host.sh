@@ -192,6 +192,11 @@ fi
 # 6. Steam control is optional and only offered when Steam is installed.
 if [ -x /usr/games/steam ] || [ -x /snap/bin/steam ]; then
   if [ -f data/steam-control/id_ed25519 ] && grep -q " scp-steam-control\$" "$HOME/.ssh/authorized_keys" 2>/dev/null; then
+    # The host runs an installed copy; keep it in step with the repository.
+    if ! cmp -s scripts/host/steam-control.sh "$HOME/.local/bin/scp-steam-control"; then
+      install -m 755 scripts/host/steam-control.sh "$HOME/.local/bin/scp-steam-control"
+      printf "ok: updated the Steam control script\n"
+    fi
     printf "ok: the dashboard can start and quit Steam\n"
   elif ask steam-control "Let the dashboard start and quit Steam"; then
     ./scripts/enable-steam-control.sh >/dev/null && printf "ok: the dashboard can start and quit Steam\n" \

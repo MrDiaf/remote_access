@@ -1,9 +1,16 @@
-# Milestone 06 — Start and quit Steam from the dashboard
+# Milestone 06 — Steam control and Remote Play
 
 ## Objective
 
-Let the user start Steam on the server's logged-in desktop, and quit it
-cleanly, from the dashboard and the TUI, with a live Running/Stopped status.
+Let the user play the server's Steam games on a phone, TV, or another PC
+through Steam Remote Play. From the dashboard and the TUI they can start Steam
+(normal or Big Picture) on the logged-in desktop and quit it cleanly, with a
+live Running/Stopped status and a short pairing guide.
+
+User decisions (2026-10-09): clients are the Steam Link app (phone/tablet/TV)
+and Steam on another PC. Away from home they use Steam's own relay (Remote
+Play Anywhere), so the project opens no firewall ports. The setup help is a
+guide in the web app, not automated Steam configuration.
 
 ## Dependencies
 
@@ -30,7 +37,8 @@ restrict,command="~/.local/bin/scp-steam-control" ssh-ed25519 … scp-steam-cont
 ```
 
 The forced command (`scripts/host/steam-control.sh`, installed by
-`make enable-steam-control`) accepts only `status`, `start`, and `stop`.
+`make enable-steam-control`) accepts only `status`, `start`, `bigpicture`, and
+`stop`.
 Anything else exits 2. `restrict` removes pty, forwarding, and agent access.
 The key lives in `data/steam-control/` (gitignored) and is mounted read-only
 at `/steam-control`. The whole folder is mounted, so a key created while the
@@ -40,14 +48,25 @@ backend runs works without recreating the container.
   Steam inherits the GNOME session's `DISPLAY`/`WAYLAND_DISPLAY` from the
   user's systemd manager. If no desktop session exists, it refuses with
   `no-session`.
+- `bigpicture`: starts Steam with `-gamepadui`, or, when Steam is already
+  running, hands it `steam://open/bigpicture` (also through `systemd-run`, so
+  it has the desktop environment).
 - `stop`: runs `steam -shutdown` and waits up to 30 s. It never kills Steam,
   because a game may still be saving.
-- `status`: `pgrep -x steam` for the user, so it also sees a Steam that was
-  opened by hand.
+- `status`: looks for the real client (`.../ubuntu12_32/steam`), not the
+  `/usr/games/steam` launcher script or its dialogs, so it also sees a Steam
+  that was opened by hand. While the `scp-steam` unit is active but the client
+  is not up yet, it reports `starting`, or `setup-needed` when the apt
+  package's one-time Install dialog is waiting on the desktop.
+- `start`/`bigpicture` never launch again while a launch is pending, and
+  `stop` on a pending launch just stops the unit (it never runs `-shutdown`,
+  which would bootstrap an uninstalled Steam). `-shutdown` and steam:// URLs
+  go to whichever install (apt or snap) is actually running.
 - Steam binary: `/usr/games/steam` (apt/.deb), falling back to
   `/snap/bin/steam`.
 
-API: `GET /api/steam`, `POST /api/steam/start`, and `POST /api/steam/stop`.
+API: `GET /api/steam`, `POST /api/steam/start`, `POST /api/steam/bigpicture`,
+and `POST /api/steam/stop`.
 Stop requires `{"confirmed": true}` and otherwise returns 409.
 
 ## Scope
@@ -56,13 +75,16 @@ Stop requires `{"confirmed": true}` and otherwise returns 409.
   `openssh-client` in the image, and tests.
 - `docker-compose.yml`: key mount and SSH host/port environment.
 - `Makefile`: `enable-steam-control` and `data-dirs`.
-- Frontend: Steam card on the Actions page, `StatusBadge` tones for the new
-  states.
-- TUI: Steam line and `s` key on the Actions tab, with tests.
+- Frontend: Steam card on the Actions page (Start / Big Picture / Stop) with
+  a collapsible Remote Play guide that links to the remote desktop for the
+  pairing PIN, and `StatusBadge` tones for the new states.
+- TUI: Steam line, guide text, and the `s` and `b` keys on the Actions tab,
+  with tests.
 - `scripts/check-host.sh`: an optional "Steam control" section.
 
-Out of scope: launching specific games, Steam Remote Play/streaming
-configuration, and autostart on login.
+Out of scope: launching specific games, changing Steam's own settings,
+opening Remote Play ports in ufw (the user chose Steam's relay), and autostart
+on login.
 
 ## Accepted limitations
 
@@ -70,8 +92,16 @@ configuration, and autostart on login.
   same requirement as the physical-screen remote desktop.
 - If Steam ignores `-shutdown` (for example, while a game is closing), the
   card shows `stopping`. The user finishes the job through the remote desktop.
-- Updating `scripts/host/steam-control.sh` requires rerunning
-  `make enable-steam-control`, because the host runs an installed copy.
+- The host runs an installed copy of `scripts/host/steam-control.sh`.
+  `make up` (`setup-host.sh`) replaces it whenever it differs from the
+  repository.
+- GNOME on Wayland is a weak Remote Play host. Valve has open reports of black
+  or frozen video (steam-for-linux #10315, #13585), mostly when streaming the
+  desktop or Big Picture. Games usually stream. The guide says to start the
+  game directly. The project cannot fix this.
+- With ufw active and no Remote Play ports open, home streaming may also take
+  the slower relay path. If that matters, add ufw rules for UDP 27031–27036
+  and TCP 27036–27037 from the LAN only.
 
 ## Completion criteria
 
@@ -82,9 +112,11 @@ configuration, and autostart on login.
 - [x] The forced command reports a running Steam (snap) on this workstation and
       does not start a second copy
 - [x] The Steam card fits desktop and phone widths without horizontal overflow
-- [ ] On the real server: answer yes to Steam control in `make up` (or run
-      `make enable-steam-control`), then Start opens Steam on the desktop
-      and Stop quits it, from the phone
+- [x] Through the real SSH path on this workstation, `status` reports the open
+      Steam and `bash -c id` is refused by the forced command
+- [x] Big Picture is allowed end to end (backend, API, card, TUI `b`); tests pass
+- [ ] On the real server: Start, Big Picture, and Stop work from the phone
+- [ ] User pairs a Steam Link device and streams a game
 
 ## Verification
 
@@ -96,6 +128,15 @@ configuration, and autostart on login.
   (snap Steam open on this workstation). `start` → `running` (no second
   copy). `"bash -i"` → `refused`, exit 2.
 - Headless Chrome screenshots of `/#actions` at 1280×900 and 390×1000.
-- Not run here: the full SSH round trip. It needs `make enable-steam-control`,
-  which edits `~/.ssh/authorized_keys`, and quitting Steam would close the
-  user's open Steam.
+- After the user set up Steam control here: the backend container's ssh, with
+  the real key → `status` = `running`; `bash -c id` and `bigpicture-typo` →
+  `refused`, exit 2. `setup-host.sh` replaced the outdated installed script.
+- Remote Play additions: `make test` → 14 backend and 13 TUI tests OK. The
+  rendered DOM shows Big Picture enabled while Steam runs.
+- 2026-10-09 regression, fixed: after `apt install steam-installer`, the
+  launcher waiting on its first-run dialog counted as running, so each Big
+  Picture click stacked another dialog (6), and Stop bootstrapped the
+  install. After the fix: status `stopped` with nothing running; `make test`
+  → 14 backend and 13 TUI tests OK.
+- Not run here: `start`, `bigpicture`, and `stop` against the real Steam,
+  because they would change the user's open Steam.

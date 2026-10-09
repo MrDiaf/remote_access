@@ -204,7 +204,7 @@ export const api = {
       body: JSON.stringify({ confirmed })
     }),
   steam: () => request<SteamStatus>('/api/steam'),
-  steamControl: (action: 'start' | 'stop', confirmed = false) =>
+  steamControl: (action: 'start' | 'bigpicture' | 'stop', confirmed = false) =>
     request<SteamStatus>(`/api/steam/${action}`, {
       method: 'POST',
       body: JSON.stringify({ confirmed })

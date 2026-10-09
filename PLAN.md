@@ -54,7 +54,7 @@ Status: implemented; waiting for confirmation on the real server.
 - [x] Unsafe SSH usernames refused
 - [ ] User confirms the TUI works on the real server
 
-## Milestone 06 — Start and quit Steam (`guidelines/milestones/06-steam-control.md`)
+## Milestone 06 — Steam control and Remote Play (`guidelines/milestones/06-steam-control.md`)
 
 Status: implemented; waiting for confirmation on the real server.
 
@@ -62,7 +62,10 @@ Status: implemented; waiting for confirmation on the real server.
 - [x] `GET /api/steam` reports `not set up` before setup; stop without confirmation returns 409
 - [x] The forced command reports a running Steam and does not start a second copy
 - [x] The Steam card fits desktop and phone widths
-- [ ] On the real server, Start opens Steam on the desktop and Stop quits it, from the phone
+- [x] Real SSH path: `status` works and other commands are refused
+- [x] Big Picture is allowed end to end; tests pass
+- [ ] On the real server: Start, Big Picture, and Stop work from the phone
+- [ ] User pairs a Steam Link device and streams a game
 
 ## Milestone 07 — `make up` sets up everything (`guidelines/milestones/07-guided-make-up.md`)
 

@@ -10,15 +10,15 @@ from .models import SteamStatus
 
 # Written by scripts/enable-steam-control.sh on the host and mounted read-only.
 # The key only works for scripts/host/steam-control.sh (authorized_keys forced
-# command), so the backend can ask for status/start/stop and nothing else.
+# command), so the backend can ask for status/start/bigpicture/stop and nothing else.
 KEY_DIR = Path(os.environ.get("STEAM_CONTROL_DIR", "/steam-control"))
 KNOWN_HOSTS = Path(os.environ.get("DATA_DIR", "data")) / "steam-control-known_hosts"
 SSH_HOST = os.environ.get("STEAM_CONTROL_SSH_HOST", "host.docker.internal")
 SSH_PORT = os.environ.get("STEAM_CONTROL_SSH_PORT", "22")
 
-VERBS = ("status", "start", "stop")
+VERBS = ("status", "start", "bigpicture", "stop")
 # The host script waits up to 30 s for Steam to quit cleanly.
-TIMEOUTS = {"status": 15, "start": 30, "stop": 60}
+TIMEOUTS = {"status": 15, "start": 30, "bigpicture": 30, "stop": 60}
 SAFE_USER = re.compile(r"^[A-Za-z0-9._][A-Za-z0-9._-]*$")
 
 MESSAGES = {
@@ -74,6 +74,12 @@ def parse_result(code: int, output: str) -> SteamStatus:
             state="no desktop",
             message="Nobody is logged in to the desktop, so Steam has nowhere to open.",
         )
+    if word == "setup-needed":
+        return SteamStatus(
+            configured=True,
+            state="needs setup",
+            message="Steam's one-time installer is waiting on the server's desktop. Open the remote desktop, click Install, and sign in.",
+        )
     if word == "missing":
         return SteamStatus(configured=True, state="not installed", message=detail.strip() or first_line)
     if code == 255:
@@ -108,6 +114,6 @@ def get_steam_status() -> SteamStatus:
 
 
 def control_steam(verb: str) -> SteamStatus:
-    if verb not in ("start", "stop"):
+    if verb not in ("start", "bigpicture", "stop"):
         raise ValueError(f"Unsupported Steam command: {verb}")
     return _run(verb)

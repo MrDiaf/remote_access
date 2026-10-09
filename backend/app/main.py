@@ -127,6 +127,12 @@ def start_steam() -> SteamStatus:
     return control_steam("start")
 
 
+@app.post("/api/steam/bigpicture", response_model=SteamStatus)
+def steam_big_picture() -> SteamStatus:
+    # Starts Steam in Big Picture, or switches a running Steam to it.
+    return control_steam("bigpicture")
+
+
 @app.post("/api/steam/stop", response_model=SteamStatus)
 def stop_steam(request: ActionRunRequest) -> SteamStatus:
     # Quitting Steam can interrupt a running game.

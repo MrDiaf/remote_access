@@ -101,7 +101,7 @@ class FakeApi:
 
     def steam_control(self, action, confirmed=False):
         self.calls.append(("steam_control", action, confirmed))
-        self.steam_state = "starting" if action == "start" else "stopped"
+        self.steam_state = "stopped" if action == "stop" else "starting"
         return self.steam()
 
 
@@ -238,6 +238,16 @@ class TuiTest(unittest.IsolatedAsyncioTestCase):
             self.assertIn(("steam_control", "stop", True), self.api.calls)
             self.assertIn("stopped", str(status.render()))
 
+    async def test_steam_big_picture_needs_no_confirmation(self):
+        async with self.app.run_test(size=(140, 50)) as pilot:
+            await pilot.press("6")
+            await self.settle(pilot)
+            self.app.query_one("#actions-table", DataTable).focus()
+            await pilot.press("b")
+            await self.settle(pilot)
+            self.assertIn(("steam_control", "bigpicture", False), self.api.calls)
+            self.assertNotIsInstance(self.app.screen, ConfirmScreen)
+
     async def test_steam_not_set_up_only_warns(self):
         self.api.steam = lambda: {"configured": False, "state": "not set up", "message": "Run make enable-steam-control"}
         async with self.app.run_test(size=(140, 50)) as pilot:
@@ -245,6 +255,7 @@ class TuiTest(unittest.IsolatedAsyncioTestCase):
             await self.settle(pilot)
             self.app.query_one("#actions-table", DataTable).focus()
             await pilot.press("s")
+            await pilot.press("b")
             await self.settle(pilot)
             self.assertFalse(any(call[0] == "steam_control" for call in self.api.calls))
 
