@@ -5,12 +5,13 @@ import { Layout, type PageKey } from './components/Layout';
 import { ActionsPage } from './pages/ActionsPage';
 import { DockerPage } from './pages/DockerPage';
 import { HomePage } from './pages/HomePage';
+import { NetworkPage } from './pages/NetworkPage';
 import { RemoteAccessPage } from './pages/RemoteAccessPage';
 import { ServicesPage } from './pages/ServicesPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { TerminalPage } from './pages/TerminalPage';
 
-const pages: PageKey[] = ['remote', 'terminal', 'services', 'home', 'docker', 'actions', 'settings'];
+const pages: PageKey[] = ['remote', 'terminal', 'services', 'home', 'network', 'docker', 'actions', 'settings'];
 
 function pageFromHash(): PageKey {
   const value = window.location.hash.replace('#', '') as PageKey;
@@ -61,6 +62,7 @@ export default function App() {
       onNavigate={navigate}
     >
       {page === 'home' ? <HomePage /> : null}
+      {page === 'network' ? <NetworkPage /> : null}
       {page === 'docker' ? <DockerPage /> : null}
       {page === 'remote' ? <RemoteAccessPage settings={settings} /> : null}
       {page === 'terminal' ? <TerminalPage /> : null}

@@ -23,6 +23,7 @@ from textual.widgets import (
     Input,
     Label,
     Select,
+    Sparkline,
     Static,
     TabbedContent,
     TabPane,
@@ -583,6 +584,98 @@ class ActionsTab(Page):
         output.update(text)
 
 
+NETWORK_RANGES = {"d": 24, "w": 24 * 7, "m": 24 * 30}
+
+
+def clock(ts: int) -> str:
+    return time.strftime("%a %H:%M", time.localtime(ts))
+
+
+def ms(value: float | None) -> str:
+    return "-" if value is None else f"{value:.0f} ms" if value >= 100 else f"{value:.1f} ms"
+
+
+class NetworkTab(Page):
+    BINDINGS = [
+        Binding("d", "range('d')", "24 hours"),
+        Binding("w", "range('w')", "7 days"),
+        Binding("m", "range('m')", "30 days"),
+        Binding("c", "copy_report", "Copy report"),
+    ]
+
+    def compose(self) -> ComposeResult:
+        yield Static(
+            "Pings the router and the internet once a second, around the clock. No speed tests. "
+            "d/w/m = last 24 hours / 7 days / 30 days, c copies the report.",
+            classes="intro",
+        )
+        yield DataTable(id="net-summary", cursor_type="none")
+        yield Label("Internet packet loss (worst target per time slot)", classes="section")
+        yield Sparkline([], id="net-loss")
+        yield Label("Internet latency (average)", classes="section")
+        yield Sparkline([], id="net-latency")
+        yield Label("Problems", classes="section")
+        yield Static(id="net-events")
+        yield Label("Report to copy", classes="section")
+        yield TextArea(id="net-report", read_only=True)
+
+    def on_mount(self) -> None:
+        self.hours = 24
+        self.query_one("#net-summary", DataTable).add_columns("Target", "Host", "Packet loss", "Avg latency", "Worst latency")
+        super().on_mount()
+
+    def action_range(self, key: str) -> None:
+        self.hours = NETWORK_RANGES[key]
+        self.reload()
+
+    def action_copy_report(self) -> None:
+        self.app.copy_to_clipboard(self.query_one("#net-report", TextArea).text)
+        self.notify("Report copied (your terminal must allow clipboard access).")
+
+    @work(exclusive=True, group="network")
+    async def reload(self) -> None:
+        data = await self.call(self.scp.api.network, self.hours)
+        report = await self.call(self.scp.api.network_report, self.hours)
+        if data is None or report is None:
+            return
+        table = self.query_one("#net-summary", DataTable)
+        table.clear()
+        targets = {target["id"]: target for target in data["targets"]}
+        for item in data["summary"]:
+            target = targets[item["id"]]
+            loss = item["loss"]
+            color = "green" if loss < 1 else "yellow" if loss < 5 else "red"
+            table.add_row(
+                escape(target["label"]), escape(target["host"]), f"[{color}]{loss:.2f}%[/]", ms(item["avg_ms"]), ms(item["max_ms"])
+            )
+
+        internet = [target["id"] for target in data["targets"] if target["internet"]]
+        slots: dict[int, list[dict]] = {}
+        for target_id in internet:
+            for point in data["series"].get(target_id, []):
+                slots.setdefault(point["t"], []).append(point)
+        ordered = [slots[t] for t in sorted(slots)]
+        self.query_one("#net-loss", Sparkline).data = [max(point["loss"] for point in slot) for slot in ordered]
+        self.query_one("#net-latency", Sparkline).data = [
+            max((point["avg_ms"] or 0) for point in slot) for slot in ordered
+        ]
+
+        if not data["events"]:
+            events = "No periods with 10% or more packet loss to the internet." if data["first_sample"] else "No measurements yet."
+        else:
+            lines = []
+            for event in reversed(data["events"]):
+                router = event["router_loss"]
+                where = "" if router is None else " - router too: inside the home network" if router >= 5 else " - router fine: outside the home network"
+                lines.append(
+                    f"{clock(event['start'])}, {max(1, round((event['end'] - event['start']) / 60))} min: "
+                    f"{event['internet_loss']:.0f}% loss to the internet{where}"
+                )
+            events = "\n".join(lines)
+        self.query_one("#net-events", Static).update(escape(events))
+        self.query_one("#net-report", TextArea).text = report["text"]
+
+
 class SettingsTab(Page):
     def compose(self) -> ComposeResult:
         yield Label("Server display name", classes="section")
@@ -658,6 +751,8 @@ TABS: list[tuple[str, str, type[Page]]] = [
     ("docker", "Docker", DockerTab),
     ("actions", "Actions", ActionsTab),
     ("settings", "Settings", SettingsTab),
+    # Last so the number keys of the older tabs stay the same.
+    ("network", "Network", NetworkTab),
 ]
 
 
@@ -676,6 +771,8 @@ class ServerControlPanelApp(App):
     .selects Vertical { height: auto; margin-right: 2; }
     TextArea { height: 8; }
     #action-result { margin-top: 1; }
+    Sparkline { height: 3; }
+    #net-report { height: 20; }
     ConfirmScreen, ChoiceScreen { align: center middle; }
     .dialog { width: 64; height: auto; padding: 1 2; border: thick $primary; background: $surface; }
     .dialogTitle { text-style: bold; margin-bottom: 1; }

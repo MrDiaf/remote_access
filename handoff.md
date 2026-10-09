@@ -77,6 +77,13 @@ works. `moonlight-web` uses host networking because Docker NAT let WebRTC
 advertise only one address and Tailscale clients fell back to the slow
 WebSocket path. Low-latency streaming is not confirmed yet. Guacamole stays the default until the user decides.
 
+Added on 2026-10-09: a Network page (and TUI tab 8) that records connection
+quality around the clock. The backend pings the router, 1.1.1.1, and 8.8.8.8
+once a second (about 250 B/s, no speed tests) and keeps 30 days in SQLite in
+the data volume. It shows loss and latency graphs and problem periods, each
+with a home-or-provider verdict from the router's loss, and a copyable
+plain-text report. See milestone 08.
+
 The next unfinished areas are:
 
 1. a Docker-based development workflow that does not require host npm;

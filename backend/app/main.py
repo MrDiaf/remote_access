@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, status
 
 from .actions import list_actions, run_action
@@ -13,6 +15,7 @@ from .config import (
 from .disk_usage import scan as scan_disk_usage
 from .docker_control import control_container, list_containers
 from .guacamole_input import apply_guacamole_input_settings
+from . import network_monitor
 from .models import (
     ActionRunRequest,
     ActionRunResult,
@@ -22,6 +25,8 @@ from .models import (
     DiskUsageResult,
     DockerContainerInfo,
     HealthResponse,
+    NetworkHistory,
+    NetworkReport,
     RemoteInputApplyResult,
     RemoteDesktopStatus,
     ServiceStatus,
@@ -34,7 +39,13 @@ from .steam_control import control_steam, get_steam_status
 from .system_info import get_system_info
 
 
-app = FastAPI(title="server-control-panel API", version="0.1.0")
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    network_monitor.start()
+    yield
+
+
+app = FastAPI(title="server-control-panel API", version="0.1.0", lifespan=lifespan)
 
 
 @app.get("/api/health", response_model=HealthResponse)
@@ -61,6 +72,16 @@ def system() -> SystemInfo:
 @app.get("/api/disk-usage", response_model=DiskUsageResult)
 def disk_usage(path: str = "/", refresh: bool = False) -> DiskUsageResult:
     return scan_disk_usage(path, refresh)
+
+
+@app.get("/api/network", response_model=NetworkHistory)
+def network_history(hours: int = 24) -> NetworkHistory:
+    return network_monitor.history(hours)
+
+
+@app.get("/api/network/report", response_model=NetworkReport)
+def network_report(hours: int = 24) -> NetworkReport:
+    return network_monitor.report(hours, load_dashboard_settings().server_name)
 
 
 @app.get("/api/docker/containers", response_model=list[DockerContainerInfo])

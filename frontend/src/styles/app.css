@@ -20,6 +20,10 @@
   --warning: #a15c07;
   --success: #1f7a4d;
   --shadow: 0 12px 30px rgba(23, 32, 38, 0.08);
+  /* Chart series, categorical slots 1-3 (validated as a set on #fff). */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
 }
 
 * {
@@ -1205,5 +1209,170 @@ button.usageRow:hover:not(:disabled) {
   .segmentedButton {
     flex: 1;
     padding: 0 8px;
+  }
+}
+
+/* Network page */
+.networkRange {
+  align-self: flex-start;
+  width: fit-content;
+}
+
+.networkRange .segmentedButton {
+  white-space: nowrap;
+}
+
+.networkBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  transition: opacity 0.15s ease;
+}
+
+.networkBody.refreshing {
+  opacity: 0.6;
+}
+
+.statIcon.status-good {
+  color: var(--success);
+  background: #e3f3ea;
+}
+
+.statIcon.status-warn {
+  color: var(--warning);
+  background: #fbf0dd;
+}
+
+.statIcon.status-bad {
+  color: var(--danger);
+  background: #fbe5e3;
+}
+
+.chartLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.chartLegend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chartKey {
+  display: inline-block;
+  width: 14px;
+  height: 2px;
+  border-radius: 1px;
+}
+
+.lineChart {
+  position: relative;
+  min-width: 0;
+  margin: 14px 0 0;
+}
+
+.lineChart figcaption {
+  margin-bottom: 4px;
+  font-weight: 700;
+}
+
+.lineChart svg {
+  display: block;
+  overflow: visible;
+  touch-action: pan-y;
+}
+
+.lineChart svg:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.chartGrid {
+  stroke: #e6e9ee;
+  stroke-width: 1;
+}
+
+.chartAxis {
+  fill: var(--muted);
+  font-size: 11px;
+}
+
+.chartLabel {
+  fill: var(--text);
+  font-size: 12px;
+}
+
+.chartCrosshair {
+  stroke: #9aa5b1;
+  stroke-width: 1;
+}
+
+.chartTooltip {
+  position: absolute;
+  top: 34px;
+  z-index: 2;
+  width: 180px;
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+.chartTooltipTime {
+  color: var(--muted);
+}
+
+.chartTooltipRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chartTooltipRow span:last-child {
+  color: var(--muted);
+}
+
+.eventList {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.eventList li {
+  display: grid;
+  gap: 2px;
+  padding-left: 10px;
+  border-left: 3px solid var(--warning);
+}
+
+.eventList span {
+  color: var(--muted);
+}
+
+.networkReport {
+  min-height: 260px;
+  padding: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  white-space: pre;
+  resize: vertical;
+}
+
+@media (max-width: 640px) {
+  .networkPage .usageHeader {
+    align-items: stretch;
+    flex-direction: column;
   }
 }

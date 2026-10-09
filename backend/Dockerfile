@@ -5,9 +5,10 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# ssh reaches the host's Steam forced command (app/steam_control.py).
+# ssh reaches the host's Steam forced command (app/steam_control.py); ping
+# feeds the network monitor (app/network_monitor.py).
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends openssh-client \
+    && apt-get install -y --no-install-recommends openssh-client iputils-ping \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .

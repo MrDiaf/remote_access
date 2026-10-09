@@ -64,6 +64,8 @@ services:
         bind:
           propagation: rslave
       - backend-data:/data
+      # Network report times in the server's local time zone.
+      - /etc/localtime:/etc/localtime:ro
       # SSH key that can only start/stop Steam; see make enable-steam-control.
       - ./data/steam-control:/steam-control:ro
       - /var/run/docker.sock:/var/run/docker.sock

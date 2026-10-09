@@ -90,6 +90,12 @@ class Api:
             timeout=120,
         )
 
+    def network(self, hours: int) -> dict:
+        return self._request("GET", f"/api/network?hours={int(hours)}")
+
+    def network_report(self, hours: int) -> dict:
+        return self._request("GET", f"/api/network/report?hours={int(hours)}")
+
     def steam(self) -> dict:
         return self._request("GET", "/api/steam")
 

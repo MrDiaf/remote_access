@@ -195,6 +195,25 @@ Extra drives are discovered below `/run/media` (removable) and `/mnt`
 (persistent). Change `HOST_MEDIA_PATH` or `HOST_MOUNT_PATH` in `.env` if your
 server mounts them elsewhere.
 
+## Network
+
+The **Network** page records how good the connection is, around the clock, so
+you can show your internet provider when it failed. The backend pings your
+router, Cloudflare (`1.1.1.1`), and Google (`8.8.8.8`) once a second. That is
+about 250 bytes per second in total; it never runs speed tests. Thirty days
+are kept.
+
+- Graphs of packet loss and latency for the last 24 hours, 7 days, or 30 days.
+- **Problems** lists every period with 10% or more packet loss to the
+  internet. If the router lost packets at the same time, the problem is in
+  the home network (Wi-Fi, cable, or the router); if not, it is on the
+  provider's side.
+- **Report to copy** is a plain-text summary with times and an hourly table.
+  Use **Copy report** or **Download** and paste it into a support ticket.
+
+In the TUI, press `8` for the same page; `d`, `w`, and `m` pick the range, and
+`c` copies the report.
+
 ## Steam
 
 Play the server's games on your phone, TV, or another PC with Steam Remote

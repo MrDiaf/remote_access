@@ -89,6 +89,15 @@ Status: in progress (experiment on the `exp` branch).
 - [ ] Works from a phone
 - [ ] User decides whether to keep it
 
+## Milestone 08 — Network quality recorder (`guidelines/milestones/08-network-monitor.md`)
+
+Status: implemented; waiting for confirmation on the real server.
+
+- [x] `make test` covers parsing, gateway detection, buckets, problem periods, the report, and the TUI tab
+- [x] The live backend records the router, 1.1.1.1, and 8.8.8.8 every 30 s
+- [x] The page renders on desktop and phone without horizontal overflow
+- [ ] User confirms the Copy button and a multi-day graph on the real server
+
 ## Backlog (no milestone file yet)
 
 These are described in `handoff.md` under "Known Unfinished Work". Write a

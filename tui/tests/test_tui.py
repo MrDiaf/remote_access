@@ -94,6 +94,29 @@ class FakeApi:
         self.calls.append(("run_action", action_id, confirmed))
         return {"id": action_id, "success": True, "message": "Done [ok]", "exit_code": 0, "output": "out [x]"}
 
+    def network(self, hours):
+        self.calls.append(("network", hours))
+        now = 1_800_000_000
+        return {
+            "hours": hours, "bucket_seconds": 300, "since": now - hours * 3600, "now": now, "first_sample": now - 3600,
+            "targets": [
+                {"id": "router", "label": "Router", "host": "192.168.0.1", "internet": False},
+                {"id": "cloudflare", "label": "Cloudflare", "host": "1.1.1.1", "internet": True},
+            ],
+            "series": {
+                "router": [{"t": now - 600, "loss": 0.0, "avg_ms": 1.0, "max_ms": 2.0, "sent": 600}],
+                "cloudflare": [{"t": now - 600, "loss": 40.0, "avg_ms": 15.0, "max_ms": 90.0, "sent": 600}],
+            },
+            "summary": [
+                {"id": "router", "sent": 600, "received": 600, "loss": 0.0, "avg_ms": 1.0, "max_ms": 2.0},
+                {"id": "cloudflare", "sent": 600, "received": 360, "loss": 40.0, "avg_ms": 15.0, "max_ms": 90.0},
+            ],
+            "events": [{"start": now - 600, "end": now - 300, "internet_loss": 40.0, "worst_internet_loss": 60.0, "router_loss": 0.0}],
+        }
+
+    def network_report(self, hours):
+        return {"hours": hours, "text": "Network quality report: Test [x]\n"}
+
     steam_state = "stopped"
 
     def steam(self):
@@ -258,6 +281,25 @@ class TuiTest(unittest.IsolatedAsyncioTestCase):
             await pilot.press("b")
             await self.settle(pilot)
             self.assertFalse(any(call[0] == "steam_control" for call in self.api.calls))
+
+    async def test_network_tab_shows_summary_problems_and_report(self):
+        async with self.app.run_test(size=(140, 70)) as pilot:
+            await pilot.press("8")
+            await self.settle(pilot)
+            self.assertIn(("network", 24), self.api.calls)
+            self.assertEqual(self.app.query_one("#net-summary", DataTable).row_count, 2)
+            self.assertIn("outside the home network", str(self.app.query_one("#net-events", Static).render()))
+            self.assertIn("Network quality report: Test [x]", self.app.query_one("#net-report", TextArea).text)
+
+            self.app.query_one("#net-summary", DataTable).focus()
+            await pilot.press("w")
+            await self.settle(pilot)
+            self.assertIn(("network", 168), self.api.calls)
+
+            with mock.patch.object(self.app, "copy_to_clipboard") as copy:
+                await pilot.press("c")
+                await self.settle(pilot)
+            copy.assert_called_once_with("Network quality report: Test [x]\n")
 
     async def test_settings_save_then_apply(self):
         async with self.app.run_test(size=(140, 70)) as pilot:

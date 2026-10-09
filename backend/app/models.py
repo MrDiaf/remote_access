@@ -178,3 +178,53 @@ class SteamStatus(BaseModel):
     # not installed, unreachable, or error.
     state: str
     message: str
+
+
+class NetworkTarget(BaseModel):
+    id: str
+    label: str
+    host: str
+    # False for the home router; True for the internet targets.
+    internet: bool
+
+
+class NetworkPoint(BaseModel):
+    t: int
+    loss: float
+    avg_ms: float | None = None
+    max_ms: float | None = None
+    sent: int
+
+
+class NetworkTargetSummary(BaseModel):
+    id: str
+    sent: int
+    received: int
+    loss: float
+    avg_ms: float | None = None
+    max_ms: float | None = None
+
+
+class NetworkEvent(BaseModel):
+    start: int
+    end: int
+    internet_loss: float
+    worst_internet_loss: float
+    router_loss: float | None = None
+
+
+class NetworkHistory(BaseModel):
+    hours: int
+    bucket_seconds: int
+    since: int
+    now: int
+    first_sample: int | None = None
+    targets: list[NetworkTarget]
+    series: dict[str, list[NetworkPoint]]
+    summary: list[NetworkTargetSummary]
+    events: list[NetworkEvent]
+
+
+class NetworkReport(BaseModel):
+    hours: int
+    text: str

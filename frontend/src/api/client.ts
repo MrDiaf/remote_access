@@ -132,6 +132,50 @@ export type SteamStatus = {
   message: string;
 };
 
+export type NetworkTarget = {
+  id: string;
+  label: string;
+  host: string;
+  internet: boolean;
+};
+
+export type NetworkPoint = {
+  t: number;
+  loss: number;
+  avg_ms: number | null;
+  max_ms: number | null;
+  sent: number;
+};
+
+export type NetworkTargetSummary = {
+  id: string;
+  sent: number;
+  received: number;
+  loss: number;
+  avg_ms: number | null;
+  max_ms: number | null;
+};
+
+export type NetworkEvent = {
+  start: number;
+  end: number;
+  internet_loss: number;
+  worst_internet_loss: number;
+  router_loss: number | null;
+};
+
+export type NetworkHistory = {
+  hours: number;
+  bucket_seconds: number;
+  since: number;
+  now: number;
+  first_sample: number | null;
+  targets: NetworkTarget[];
+  series: Record<string, NetworkPoint[]>;
+  summary: NetworkTargetSummary[];
+  events: NetworkEvent[];
+};
+
 export class ApiError extends Error {
   status: number;
 
@@ -203,6 +247,8 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ confirmed })
     }),
+  network: (hours: number) => request<NetworkHistory>(`/api/network?hours=${hours}`),
+  networkReport: (hours: number) => request<{ hours: number; text: string }>(`/api/network/report?hours=${hours}`),
   steam: () => request<SteamStatus>('/api/steam'),
   steamControl: (action: 'start' | 'bigpicture' | 'stop', confirmed = false) =>
     request<SteamStatus>(`/api/steam/${action}`, {
